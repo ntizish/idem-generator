@@ -1,0 +1,12 @@
+{
+  "name": "pigment-local",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.mjs",
+    "start": "node server.mjs",
+    "check": "node --check app.js && node --check painter.js && node --check server.mjs",
+    "test": "node scripts/check-render.mjs"
+  }
+}

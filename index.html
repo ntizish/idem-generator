@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pigment — a little oil painting studio</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><a class="brand" href="/" aria-label="Pigment home"><span class="mark">p.</span>Pigment<span class="brand-note">a little oil painting studio</span></a><span class="local"><i></i> Made right here. Saved only by you.</span></header>
+<main>
+<aside>
+<div class="eyebrow">COLOR IN. PAINTING OUT.</div>
+<h1>A little color.<br>A lot of feeling.</h1>
+<p class="intro">Turn your palette into a soft, layered oil painting. A new composition, every time.</p>
+<div class="palette-heading"><h2>Your pigments</h2><span id="color-count">4 colors</span></div>
+<div id="colors"></div>
+<button id="add" class="add">＋ Add a color</button>
+<div class="divider"></div>
+<div class="eyebrow small">A PALETTE TO START WITH</div>
+<div class="presets" id="presets"></div>
+<button id="generate" class="primary"><span>Paint something new</span><span aria-hidden="true">↗</span></button>
+<p class="hint">Just your colors. A little happy accident.</p>
+<div class="studio-note"><span class="note-mark">✳</span><p>Soft pigment. Bristled strokes.<br>Light catching the paint.</p></div>
+</aside>
+<section class="workspace" aria-label="Painting preview">
+<div class="work-top"><span><i class="dot"></i> YOUR CANVAS</span><span id="edition">STUDY 001</span></div>
+<div class="art-frame"><canvas id="painting" width="1920" height="1200" aria-label="Generated abstract oil painting"></canvas><div id="loading"><span class="spinner"></span><span id="progress">Mixing your pigments…</span></div></div>
+<div class="work-bottom"><div><h2 id="art-title">A study in butter & light</h2><p>1920 × 1200 px <span>·</span> Original, every time</p></div><button id="download" class="download" disabled><span aria-hidden="true">↓</span> Save image <span class="file-type">PNG</span></button></div>
+<div class="caption"><span>01 / PICK YOUR COLORS</span><span>02 / LET THE PAINT SETTLE</span><span>03 / MAKE IT YOURS</span></div>
+<p id="status" role="status" aria-live="polite"></p>
+</section>
+</main>
+<footer><span>A small space for beautiful accidents.</span><span>NO PROMPTS. JUST PIGMENT.</span></footer>
+<script type="module" src="/app.js"></script>
+</body></html>
