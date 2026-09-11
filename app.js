@@ -6,6 +6,7 @@ const presets = [
   {name:'Blue hour',colors:['#E5E8E9','#A3B6C4','#647E97','#CCD6DA']}
 ];
 let colors=[...presets[0].colors], edition=0, busy=false, currentColors=[], currentSeed=0;
+const outputSize={width:3840,height:2400};
 let worker;
 function renderColors(){
   $('#colors').replaceChildren();
@@ -28,23 +29,26 @@ $('#add').addEventListener('click',()=>{if(colors.length<6){colors.push('#F5F0E5
 function setBusy(value){busy=value;$('#generate').disabled=value;$('#download').disabled=value||!edition;$('#loading').hidden=!value;$('#painting').setAttribute('aria-busy',String(value));}
 function generate(){
   if(busy)return;setBusy(true);$('#status').textContent='';$('#progress').textContent='Mixing your pigments…';
-  currentColors=[...colors];currentSeed=crypto.getRandomValues(new Uint32Array(1))[0];
+  const renderColors=[...colors],renderSeed=crypto.getRandomValues(new Uint32Array(1))[0];
   worker?.terminate();worker=new Worker('/painter.js');
   worker.onmessage=({data})=>{
     if(data.progress){$('#progress').textContent=data.progress;return;}
     if(data.error){fail(data.error);return;}
-    $('#painting').getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(data.pixels),data.width,data.height),0,0);
+    const canvas=$('#painting');
+    canvas.width=data.width;canvas.height=data.height;
+    currentColors=renderColors;currentSeed=renderSeed;
+    canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(data.pixels),data.width,data.height),0,0);
     edition++;$('#edition').textContent=`STUDY ${String(edition).padStart(3,'0')}`;
     const preset=presets.find(p=>p.colors.join()===currentColors.join());
     $('#art-title').textContent=preset?`A study in ${preset.name.toLowerCase()}`:'A study in your colors';
     setBusy(false);$('#status').textContent='Your painting is ready.';worker.terminate();worker=null;
   };
   worker.onerror=()=>fail('The painting could not be completed. Please try again.');
-  worker.postMessage({colors:currentColors,seed:currentSeed,width:1920,height:1200});
+  worker.postMessage({colors:renderColors,seed:renderSeed,...outputSize});
 }
 function fail(message){setBusy(false);$('#status').textContent=message;worker?.terminate();worker=null;}
 $('#generate').addEventListener('click',generate);
 $('#download').addEventListener('click',()=>{
-  $('#painting').toBlob(blob=>{if(!blob){$('#status').textContent='Unable to save this image. Please try again.';return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`pigment-${currentSeed}.png`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);$('#status').textContent='Your PNG is ready to save.';},'image/png');
+  $('#painting').toBlob(blob=>{if(!blob){$('#status').textContent='Unable to save this image. Please try again.';return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=`pigment-${currentSeed}-3840x2400.png`;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);$('#status').textContent='Your PNG is ready to save.';},'image/png');
 });
 renderColors();generate();

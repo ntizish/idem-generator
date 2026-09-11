@@ -3,6 +3,20 @@ self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
   try {
     let state = seed >>> 0;
     const random = () => { state += 0x6D2B79F5; let t = state; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+    // One seeded painting character, plus small variations within each brush.
+    // Keep load/coverage bounded and compensate stroke count for brush area.
+    const range=(lo,hi)=>lo+(hi-lo)*random();
+    const style={
+      brushScale:range(.58,1.85), width:range(.65,1.4), density:range(.8,1.15),
+      curvature:range(.35,1.5), spread:range(.85,2),
+      flowScale:range(1.8,6), flowTurn:range(1.8,5.5), angle:range(-Math.PI,Math.PI),
+      jitter:range(.25,1), pigmentLoad:range(.7,1.3), wetness:range(.35,.85),
+      pickup:range(.009,.034), pressure:range(.25,.7),
+      compositionScale:range(1.8,4.6), warp:range(.8,2.7), patchScale:range(3,9),
+      bristleSpacing:range(.7,1.45), grainScale:range(.75,1.35),
+      lightAngle:range(-2.7,-.45), lightHeight:range(.73,.88), gloss:range(22,38),
+      passes:Array.from({length:4},()=>range(.8,1.2))
+    };
     const palette = colors.map(c => [1,3,5].map(i => parseInt(c.slice(i,i+2),16)));
     const tables = Array.from({length:5},()=> Float32Array.from({length:128*128},random));
     function noise(x,y,layer=0) {
@@ -12,8 +26,8 @@ self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
     }
     function field(x,y) {
       const nx=x/w,ny=y/h;
-      const wx=nx*3.2+(noise(nx*4,ny*4,1)-.5)*1.9;
-      const wy=ny*3.2+(noise(nx*4+40,ny*4,2)-.5)*1.9;
+      const wx=nx*style.compositionScale+(noise(nx*4,ny*4,1)-.5)*style.warp;
+      const wy=ny*style.compositionScale+(noise(nx*4+40,ny*4,2)-.5)*style.warp;
       return noise(wx,wy)*.68+noise(wx*2.7,wy*2.7,1)*.23+noise(wx*7,wy*7,2)*.09;
     }
     // Large, softly marbled pigment masses, with all entered colors represented.
@@ -35,28 +49,30 @@ self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
     const clamp=v=>Math.max(0,Math.min(1,v));
     const smooth=v=>{v=clamp(v);return v*v*(3-2*v);};
     const wet=new Float32Array(w*h);
-    const sizes=[105,55,24,11], counts=[2300,6500,9500,9000];
+    const sizes=[105,55,24,11].map((size,i)=>size*style.brushScale*style.passes[i]);
+    const counts=[2300,6500,9500,9000].map((count,i)=>Math.round(count*style.density/Math.max(.35,style.brushScale**2*style.width*style.passes[i]**2)));
+    const pickupRate=1-Math.pow(1-style.pickup,1/scale);
     for(let pass=0;pass<sizes.length;pass++){
       self.postMessage({progress:['Brushing in the first pigments…','Pulling wet colors together…','Scumbling broken layers of paint…','Leaving the last bristle traces…'][pass]});
       for(let stroke=0;stroke<counts[pass];stroke++){
         const cx=random()*w,cy=random()*h;
-        const body=clamp((noise(cx/w*6,cy/h*6,4)-.3)*2.3);
+        const body=clamp((noise(cx/w*style.patchScale,cy/h*style.patchScale,4)-.3)*2.3);
         if(pass>1 && random()> .2+body*.8)continue;
         // Direction varies by region and follows the developing composition.
-        const angle=(noise(cx/w*4,cy/h*4,3)-.5)*5+(random()-.5)*.9;
+        const angle=style.angle+(noise(cx/w*style.flowScale,cy/h*style.flowScale,3)-.5)*style.flowTurn+(random()-.5)*style.jitter;
         const co=Math.cos(angle),si=Math.sin(angle);
-        const length=sizes[pass]*(.5+random()*1.6)*scale;
-        const half=length*.5,radius=length*(.13+random()*.21);
-        const curve=(random()-.5)*radius*.9;
-        const bristleCount=Math.max(12,Math.ceil(radius*2/scale));
+        const length=sizes[pass]*(.6+random()*style.spread)*scale;
+        const half=length*.5,radius=length*(.13+random()*.21)*style.width;
+        const curve=(random()-.5)*radius*style.curvature;
+        const bristleCount=Math.max(12,Math.ceil(radius*2/(scale*style.bristleSpacing)));
         const bristles=Float32Array.from({length:bristleCount+2},()=>random());
         const tips=Float32Array.from({length:bristleCount+2},()=>random());
         const carried=new Float32Array((bristleCount+2)*3);
         const tint=(random()-.5)*[7,14,16,13][pass];
         const startColor=colorAt(sample(cx,cy));
-        const loaded=(.4+random()*.6);
+        const loaded=clamp(style.wetness+(random()-.5)*.4);
         const contact=[.55,.8,.86,.7][pass];
-        const load=[.09,.23,.6,.32][pass]*(.35+body*1.1)*(.5+random());
+        const load=[.09,.23,.6,.32][pass]*(.35+body*1.1)*(.5+random())*style.pigmentLoad;
         const offset=random()*100;
         for(let b=0;b<bristleCount+2;b++){
           const across=(b/bristleCount-.5)*radius*2;
@@ -68,7 +84,7 @@ self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
         for(let t=-half;t<=half;t+=step){
           const u=t/half;
           const bend=curve*(1-u*u)+Math.sin(u*2+offset)*radius*.08;
-          const pressure=Math.pow(Math.max(0,1-u*u),.38);
+          const pressure=Math.pow(Math.max(0,1-u*u),style.pressure);
           const span=radius*(.72+.28*pressure);
           for(let q=-span;q<=span;q+=step){
             const v=q/radius;
@@ -83,14 +99,14 @@ self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
             const entry=smooth((u+1-tip*.32)*5);
             const exit=smooth((1-u-(1-tip)*.4)*3.8);
             const side=smooth((1-Math.abs(v))*(5+tip*4));
-            const tooth=noise(x/(3.2*scale)+offset,y/(3.2*scale),2);
+            const tooth=noise(x/(3.2*scale*style.grainScale)+offset,y/(3.2*scale*style.grainScale),2);
             const drag=noise(t/(9*scale)+offset,q/(2.1*scale),4);
             const dry=clamp((bristle*.55+tooth*.3+drag*.15-(1-loaded)*.38)*2.2);
             const coverage=entry*exit*side*dry;
             if(coverage<.015)continue;
             const p=bi*3;
             // Pickup accumulates along a bristle, naturally streaking pigment.
-            const pickup=.018*(.3+wet[i]);
+            const pickup=pickupRate*(.3+wet[i]);
             const a=coverage*contact;
             for(let k=0;k<3;k++){
               const old=paint[i*3+k];
@@ -113,20 +129,25 @@ self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
     }
     const out=new Uint8ClampedArray(w*h*4);
     self.postMessage({progress:'Lighting the painted surface…'});
+    const lz=style.lightHeight,lr=Math.sqrt(1-lz*lz);
+    const lx=Math.cos(style.lightAngle)*lr,ly=Math.sin(style.lightAngle)*lr;
+    const halfLength=Math.sqrt(lx*lx+ly*ly+(lz+1)**2);
+    const hx=lx/halfLength,hy=ly/halfLength,hz=(lz+1)/halfLength;
+    const flatGloss=Math.pow(hz,style.gloss);
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){
       const i=y*w+x;
       const left=surface[y*w+Math.max(0,x-1)],right=surface[y*w+Math.min(w-1,x+1)];
       const up=surface[Math.max(0,y-1)*w+x],down=surface[Math.min(h-1,y+1)*w+x];
-      const nx=(left-right)*2.8,ny=(up-down)*2.8,inv=1/Math.sqrt(1+nx*nx+ny*ny);
-      const diffuse=Math.max(0,(nx*-.42+ny*-.52+.743)*inv);
-      const gloss=Math.pow(Math.max(0,(nx*-.225+ny*-.278+.934)*inv),28);
-      const shade=(diffuse-.743)*.44;
-      const highlight=(gloss-Math.pow(.934,28))*11;
+      const nx=(left-right)*2.8*scale,ny=(up-down)*2.8*scale,inv=1/Math.sqrt(1+nx*nx+ny*ny);
+      const diffuse=Math.max(0,(nx*lx+ny*ly+lz)*inv);
+      const gloss=Math.pow(Math.max(0,(nx*hx+ny*hy+hz)*inv),style.gloss);
+      const shade=(diffuse-lz)*.44;
+      const highlight=(gloss-flatGloss)*11;
       const weave=Math.sin(x*2.8)*Math.sin(y*2.7)*.28;
       const grain=(random()-.5)*1.2;
       for(let k=0;k<3;k++)out[i*4+k]=paint[i*3+k]*(1+shade)+highlight+grain+weave;
       out[i*4+3]=255;
     }
-    self.postMessage({pixels:out.buffer,width:w,height:h},[out.buffer]);
+    self.postMessage({pixels:out.buffer,width:w,height:h,style},[out.buffer]);
   }catch(error){self.postMessage({error:error.message});}
 };
