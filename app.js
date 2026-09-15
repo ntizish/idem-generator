@@ -1,9 +1,9 @@
 const $ = s => document.querySelector(s);
 const presets = [
-  {name:'Butter & light',colors:['#F5F0D9','#E9D995','#D8CFAC','#F7F5E7']},
-  {name:'Rose & clay',colors:['#F2DDD0','#C58F7B','#A85C50','#E8C5B8']},
-  {name:'Sage & silence',colors:['#E4E6D6','#ADB99D','#6F8067','#D1D7BE']},
-  {name:'Blue hour',colors:['#E5E8E9','#A3B6C4','#647E97','#CCD6DA']}
+  {name:'Chiaroscuro',colors:['#DFD2AE','#856333','#1C2020','#4A292C','#82908A']},
+  {name:'Crimson & gold',colors:['#E1CBA0','#AD8543','#211B1B','#572329','#963E36']},
+  {name:'Storm & stone',colors:['#DAD1B7','#A49B7E','#1B2329','#34454D','#687F86']},
+  {name:'Forest & bronze',colors:['#D7C59F','#9D7844','#1B211D','#39432D','#696447']}
 ];
 let colors=[...presets[0].colors], edition=0, busy=false, currentColors=[], currentSeed=0;
 const outputSize={width:3840,height:2400};

@@ -128,12 +128,15 @@ self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
       surface[i]=(relief[i]*4+relief[y*w+Math.max(0,x-1)]+relief[y*w+Math.min(w-1,x+1)]+relief[Math.max(0,y-1)*w+x]+relief[Math.min(h-1,y+1)*w+x])/8;
     }
     const out=new Uint8ClampedArray(w*h*4);
-    self.postMessage({progress:'Lighting the painted surface…'});
+    self.postMessage({progress:'Lighting the paint and settling the patina…'});
     const lz=style.lightHeight,lr=Math.sqrt(1-lz*lz);
     const lx=Math.cos(style.lightAngle)*lr,ly=Math.sin(style.lightAngle)*lr;
     const halfLength=Math.sqrt(lx*lx+ly*ly+(lz+1)**2);
     const hx=lx/halfLength,hy=ly/halfLength,hz=(lz+1)/halfLength;
     const flatGloss=Math.pow(hz,style.gloss);
+    // Separate aging randomness from the brush sequence so the underlying
+    // painting and its seeded character are unchanged by finishing adjustments.
+    const ageStrength=.8+noise((seed>>>0)%127,47,0)*.4;
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){
       const i=y*w+x;
       const left=surface[y*w+Math.max(0,x-1)],right=surface[y*w+Math.min(w-1,x+1)];
@@ -142,10 +145,24 @@ self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
       const diffuse=Math.max(0,(nx*lx+ny*ly+lz)*inv);
       const gloss=Math.pow(Math.max(0,(nx*hx+ny*hy+hz)*inv),style.gloss);
       const shade=(diffuse-lz)*.44;
-      const highlight=(gloss-flatGloss)*11;
-      const weave=Math.sin(x*2.8)*Math.sin(y*2.7)*.28;
-      const grain=(random()-.5)*1.2;
-      for(let k=0;k<3;k++)out[i*4+k]=paint[i*3+k]*(1+shade)+highlight+grain+weave;
+      // Slightly dull the sheen. Aging is a restrained material finish, not
+      // a sepia filter: preserve hue, shadow depth, and the deposited relief.
+      const highlight=(gloss-flatGloss)*8.5;
+      const px=x/scale,py=y/scale;
+      const weave=Math.sin(px*2.8)*Math.sin(py*2.7)*.24;
+      const mottling=noise(px/145,py/145,1)*.65+noise(px/39,py/39,3)*.35;
+      const fine=noise(px/1.35,py/1.35,2)-.5;
+      const grain=((random()-.5)*1.5+fine*3.8)*ageStrength;
+      const luminance=(paint[i*3]*.2126+paint[i*3+1]*.7152+paint[i*3+2]*.0722)/255;
+      const varnish=(.009+mottling*.017)*ageStrength;
+      // Sparse, soft pinpricks of wear; no large cracks or repeated scratches.
+      const fleck=Math.max(0,(noise(px*.58+71,py*.58+19,4)-.91)/.09);
+      const wear=fleck*fleck*(4+9*(1-luminance))*ageStrength;
+      for(let k=0;k<3;k++){
+        const lit=paint[i*3+k]*(1+shade)+highlight;
+        const absorption=[.18,.4,.9][k];
+        out[i*4+k]=lit*(1-varnish*absorption)+(mottling-.5)*1.6+grain+weave+wear;
+      }
       out[i*4+3]=255;
     }
     self.postMessage({pixels:out.buffer,width:w,height:h,style},[out.buffer]);

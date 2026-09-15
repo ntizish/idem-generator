@@ -4,7 +4,7 @@ import {deflateSync} from 'node:zlib';
 const source=await readFile(new URL('../painter.js',import.meta.url),'utf8');
 let lastStyle;
 function render(colors,seed,width=320,height=200){let output;const self={postMessage(data){if(data.error)throw Error(data.error);if(data.pixels)output=data;}};new Function('self',source)(self);self.onmessage({data:{colors,seed,width,height}});assert(output);lastStyle=output.style;return new Uint8Array(output.pixels);}
-const palette=['#F5F0D9','#E9D995','#D8CFAC','#F7F5E7'];
+const palette=['#DFD2AE','#856333','#1C2020','#4A292C','#82908A'];
 const a=render(palette,42),b=render(palette,42),c=render(palette,43),d=render(['#321434','#BC828E'],42);
 assert.deepEqual(a,b,'Same seed should reproduce a painting');assert.notDeepEqual(a,c,'Fresh seed should change the painting');assert.notDeepEqual(a,d,'Palette should change the painting');
 render(palette,42);const style42=lastStyle;
