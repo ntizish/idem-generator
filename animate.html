@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pigment — moving paintings</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><a class="brand" href="/" aria-label="Pigment home"><span class="mark">p.</span>Pigment<span class="brand-note">a little oil painting studio</span></a><nav class="page-nav" aria-label="Studio pages"><a href="/">Still</a><a href="/animate" aria-current="page">Moving</a><a href="/layered">Layered</a></nav><span class="local"><i></i> Made right here. Saved only by you.</span></header>
+<main>
+<aside>
+<div class="eyebrow">PAINT, STILL BECOMING.</div>
+<h1>A painting.<br>Never finished.</h1>
+<p class="intro">Watch textured brush strokes lay down color, then keep painting new variations.</p>
+<div class="palette-heading"><h2>Your pigments</h2><span id="color-count">5 colors</span></div>
+<div id="colors"></div>
+<button id="add" class="add">＋ Add a color</button>
+<div class="divider"></div>
+<div class="eyebrow small">A PALETTE TO START WITH</div>
+<div class="presets" id="presets"></div>
+<button id="generate" class="primary"><span>Paint something new</span><span aria-hidden="true">↗</span></button>
+<p class="hint">Just your colors. A little happy accident.</p>
+<div class="studio-note"><span class="note-mark">✳</span><p>Soft pigment. Bristled strokes.<br>Light catching the paint.</p></div>
+</aside>
+<section class="workspace" aria-label="Painting preview">
+<div class="work-top"><span><i class="dot"></i> YOUR CANVAS</span><span id="edition">STUDY 001</span></div>
+<div class="art-frame"><canvas id="painting" width="1280" height="800" aria-label="Generated abstract oil painting"></canvas><div id="loading"><span class="spinner"></span><span id="progress">Mixing your pigments…</span></div></div>
+<div class="work-bottom"><div><h2 id="art-title">A study in chiaroscuro</h2><p>1280 × 800 px <span>·</span> Continuously painted</p></div><button id="download" class="download" disabled><span aria-hidden="true">↓</span> Save frame <span class="file-type">PNG</span></button></div>
+<div class="motion-controls"><button id="pause" class="download" disabled>Pause</button><button id="record" class="download" disabled>Record 12 seconds</button><span id="motion-note">New strokes, new variations.</span></div><div class="caption"><span>01 / PICK YOUR COLORS</span><span>02 / WATCH IT UNFOLD</span><span>03 / MAKE IT YOURS</span></div>
+<p id="status" role="status" aria-live="polite"></p>
+</section>
+</main>
+<footer><span>A small space for beautiful accidents.</span><span>NO PROMPTS. JUST PIGMENT.</span></footer>
+<script type="module" src="/animation.js"></script>
+</body></html>

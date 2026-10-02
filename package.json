@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node scripts/build.mjs",
     "dev": "node server.mjs",
     "start": "node server.mjs",
-    "check": "node --check app.js && node --check painter.js && node --check server.mjs",
-    "test": "node scripts/check-render.mjs"
+    "check": "node --check app.js && node --check painter.js && node --check server.mjs && node --check animation.js",
+    "test": "node scripts/check-render.mjs && node scripts/check-layered.mjs"
   }
 }
