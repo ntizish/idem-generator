@@ -1,6 +1,6 @@
 const $ = s => document.querySelector(s);
 const canvas = $('#painting');
-let source = null, worker = null, busy = false, ready = false, edition = 0, seed = 0, filename = 'image', loadVersion = 0;
+let source = null, worker = null, busy = false, ready = false, seed = 0, filename = 'image', loadVersion = 0;
 
 function setBusy(value) {
   busy = value;
@@ -54,7 +54,6 @@ async function loadFile(file) {
     $('#source-size').textContent = `${image.naturalWidth} × ${image.naturalHeight}`;
     $('#file-name').textContent = file.name;
     canvas.hidden = true; $('#empty-state').hidden = false;
-    $('#art-title').textContent = 'Your image, in oil';
     $('#output-size').textContent = `${width} × ${height} px · Original proportions`;
     setBusy(false);
     $('#status').textContent = 'Image ready. Choose Paint this image to begin.';
@@ -80,10 +79,7 @@ function generate() {
         canvas.style.aspectRatio = `${data.width} / ${data.height}`;
         canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(data.pixels), data.width, data.height), 0, 0);
         canvas.hidden = false; $('#empty-state').hidden = true;
-        edition++;
-        $('#edition').textContent = `IMAGE STUDY ${String(edition).padStart(3, '0')}`;
-        $('#art-title').textContent = 'A familiar scene, freshly painted';
-        $('#generate span').textContent = 'Paint another variation';
+        $('#generate span').textContent = 'Generate variation';
         ready = true; setBusy(false);
         $('#status').textContent = 'Your painting is ready to save.';
         worker.terminate(); worker = null;

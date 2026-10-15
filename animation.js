@@ -61,8 +61,7 @@ function prepare(first=false){
       target=picture;basePixels=new Uint8ClampedArray(data.pixels);brushStyle=data.style;currentSeed=seed;randomState=seed;strokes=[];paintTime=0;lastTime=0;
       ctx.fillStyle=currentColors[2]||currentColors[0];ctx.fillRect(0,0,canvas.width,canvas.height);
       if(accumulating)ctx.drawImage(target,0,0);
-      setBusy(false);edition++;$('#edition').textContent=`${modeName.toUpperCase()} STUDY ${String(edition).padStart(3,'0')}`;
-      const preset=presets.find(p=>p.colors.join()===currentColors.join());$('#art-title').textContent=preset?`A ${modeName} study in ${preset.name.toLowerCase()}`:`A ${modeName} study in your colors`;
+      setBusy(false);edition++;
       // Reduced-motion users choose when animation starts.
       if(paused){ctx.drawImage(target,0,0);$('#status').textContent='Ready. Press Play to start the brush strokes.';}
       else {$('#status').textContent='Your painting is unfolding.';schedule();}

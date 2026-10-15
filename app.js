@@ -46,9 +46,7 @@ function generate(){
     canvas.width=data.width;canvas.height=data.height;
     currentColors=renderColors;currentSeed=renderSeed;
     canvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(data.pixels),data.width,data.height),0,0);
-    edition++;$('#edition').textContent=`STUDY ${String(edition).padStart(3,'0')}`;
-    const preset=presets.find(p=>p.colors.join()===currentColors.join());
-    $('#art-title').textContent=preset?`A study in ${preset.name.toLowerCase()}`:'A study in your colors';
+    edition++;
     setBusy(false);$('#status').textContent='Your painting is ready.';worker.terminate();worker=null;
   };
   worker.onerror=()=>fail('The painting could not be completed. Please try again.');

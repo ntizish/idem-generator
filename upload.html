@@ -1,28 +1,23 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pigment — paint your image</title><link rel="stylesheet" href="/style.css"></head>
-<body class="upload-page">
-<header><a class="brand" href="/" aria-label="Pigment home"><span class="mark">p.</span>Pigment<span class="brand-note">a little oil painting studio</span></a><nav class="page-nav" aria-label="Studio pages"><a href="/">Still</a><a href="/upload" aria-current="page">Upload</a><a href="/layered">Layered</a></nav><span class="local"><i></i> Made right here. Saved only by you.</span></header>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pigment — Upload</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header class="toolbar"><nav class="page-nav" aria-label="Generator mode"><a href="/">Still</a><a href="/upload" aria-current="page">Upload</a><a href="/layered">Layered</a></nav></header>
 <main>
-<aside>
-<div class="eyebrow">YOUR IMAGE. OUR PIGMENT.</div>
-<h1>A familiar scene.<br>A different feeling.</h1>
-<p class="intro">Turn an image into a soft, layered oil painting. Your colors and composition, with our bristled strokes and timeworn finish.</p>
-<label class="upload-drop" id="drop-zone" for="image-file"><span class="upload-icon" aria-hidden="true">＋</span><strong>Choose an image</strong><span>or drop one here</span><span class="upload-formats">JPG, PNG, WebP · up to 20 MB</span><input id="image-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Upload an image to paint"></label>
-<p id="file-name" class="file-note">Your image stays in this browser.</p>
-<div id="source-preview" hidden><div class="palette-heading"><h2>Your original</h2><span id="source-size"></span></div><img id="original" alt="Your original image"></div>
-<button id="generate" class="primary" disabled><span>Paint this image</span><span aria-hidden="true">↗</span></button>
-<p class="hint">A new brush study, every time.</p>
-<div class="studio-note"><span class="note-mark">✳</span><p>The same soft pigment.<br>A little more personal.</p></div>
-</aside>
-<section class="workspace" aria-label="Stylized image preview">
-<div class="work-top"><span><i class="dot"></i> YOUR CANVAS</span><span id="edition">IMAGE STUDY</span></div>
-<div class="art-frame upload-frame"><canvas id="painting" width="1280" height="800" aria-label="Oil painting of your uploaded image" hidden></canvas><div id="empty-state"><span class="empty-mark" aria-hidden="true">✳</span><h2>A new way to see it.</h2><p>Choose a photo, illustration, or a favorite little moment.<br>We’ll bring the brush strokes.</p></div><div id="loading" hidden><span class="spinner"></span><span id="progress">Preparing your image…</span></div></div>
-<div class="work-bottom"><div><h2 id="art-title">Your image, in oil</h2><p id="output-size">Original proportions <span>·</span> 3840 px longest edge</p></div><button id="download" class="download" disabled><span aria-hidden="true">↓</span> Save image <span class="file-type">PNG</span></button></div>
-<div class="caption"><span>01 / CHOOSE YOUR IMAGE</span><span>02 / LET THE PAINT SETTLE</span><span>03 / MAKE IT YOURS</span></div>
+<section class="workspace" aria-label="Canvas workspace">
+<div class="canvas-stage"><div class="art-frame">
+<canvas id="painting" width="1280" height="800" aria-label="Oil painting of your uploaded image" hidden></canvas>
+<div id="empty-state"><p>Upload an image to begin.</p></div>
+<div id="loading" hidden><span class="spinner" aria-hidden="true"></span><span id="progress">Preparing canvas…</span></div>
+</div></div>
+<div class="export-bar" aria-label="Export controls"><span id="output-size">3840 px longest edge</span><div class="export-actions"><button id="download" class="download" disabled>Export PNG</button></div></div>
 <p id="status" role="status" aria-live="polite"></p>
 </section>
+<aside aria-label="Upload settings"><div class="panel-section"><h2>Source image</h2>
+<label class="upload-drop" id="drop-zone" for="image-file"><strong>Choose an image</strong><span>or drop it here</span><span class="upload-formats">JPG, PNG, WebP · up to 20 MB</span><input id="image-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Upload an image to paint"></label>
+<p id="file-name" class="file-note">No image selected</p></div>
+<div id="source-preview" class="panel-section" hidden><div class="panel-heading"><h2>Original</h2><span id="source-size"></span></div><img id="original" alt="Your original image"></div>
+<button id="generate" class="primary" disabled><span>Paint this image</span></button></aside>
 </main>
-<footer><span>A small space for beautiful accidents.</span><span>YOUR IMAGE. JUST PIGMENT.</span></footer>
 <script type="module" src="/upload.js"></script>
 </body></html>
