@@ -46,7 +46,7 @@ The starter palettes use deep charcoal, wine reds, ochre, muted blue-green, and 
 
 Open `/upload`, or choose **Upload** in the header. Choose or drop a JPG, PNG, or WebP image up to 20 MB, then select **Paint this image**. The same local painter samples pigment from the image instead of generating an abstract color field. The original brush sizes, density, and bristle behavior add paint relief, lighting, and the studio’s aged finish while taking colors from the source composition. Paint again for another seeded variation, or save the result as PNG.
 
-Images keep their proportions, with the longest edge capped at 1920 pixels and no enlargement. Transparent areas use an ivory ground. Images are decoded and painted in the browser and are never sent to a server.
+Images keep their proportions and always render with a 3840-pixel longest edge, matching the Still canvas’s long edge. Smaller sources are enlarged before painting, so brushwork and the final PNG are produced at full export resolution. Transparent areas use an ivory ground. Images are decoded and painted in the browser and are never sent to a server.
 
 ## Living layers
 

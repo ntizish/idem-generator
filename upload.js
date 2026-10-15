@@ -35,13 +35,17 @@ async function loadFile(file) {
     image.src = url;
     await image.decode();
     if (version !== loadVersion) return;
-    const scale = Math.min(1, 1920 / Math.max(image.naturalWidth, image.naturalHeight));
+    // Match the Still canvas resolution, including for small source images.
+    // Enlarge the source first so brushwork is painted at export resolution.
+    const scale = 3840 / Math.max(image.naturalWidth, image.naturalHeight);
     const width = Math.max(1, Math.round(image.naturalWidth * scale));
     const height = Math.max(1, Math.round(image.naturalHeight * scale));
     const buffer = document.createElement('canvas'); buffer.width = width; buffer.height = height;
     const context = buffer.getContext('2d', {willReadFrequently: true});
     // Transparent images are painted on the studio's warm ivory ground.
     context.fillStyle = '#f4f0e5'; context.fillRect(0, 0, width, height);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
     context.drawImage(image, 0, 0, width, height);
     source = context.getImageData(0, 0, width, height);
     filename = file.name.replace(/\.[^.]+$/, '') || 'image';
