@@ -7,7 +7,7 @@
     "build": "vite build",
     "dev": "vite",
     "start": "node server.mjs",
-    "check": "node --check public/painter.js && node --check src/engines/still.js && node --check src/engines/upload.js && node --check server.mjs && node --check vite.config.js && node --check src/lib/banner-layout.js && node --check src/lib/paint-background.js",
+    "check": "node --check public/painter.js && node --check src/engines/still.js && node --check src/engines/upload.js && node --check server.mjs && node --check vite.config.js && node --check src/lib/banner-layout.js && node --check src/lib/paint-background.js && node --check src/lib/brand-assets.js",
     "test": "node scripts/check-render.mjs && node scripts/check-upload.mjs && node scripts/check-banner.mjs && node scripts/check-interface.mjs"
   },
   "dependencies": {

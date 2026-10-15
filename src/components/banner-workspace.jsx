@@ -1,48 +1,52 @@
 import React, {useEffect,useRef,useState} from 'react';
+import {ArrowLeft,ArrowUp,ArrowRight,ArrowDown,Sun,Moon,Plus,Minus,WandSparkles,Image as ImageIcon,X} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Textarea} from '@/components/ui/textarea';
 import {Switch} from '@/components/ui/switch';
-import {Select,SelectContent,SelectItem,SelectTrigger,SelectValue} from '@/components/ui/select';
+import {ToggleGroup,ToggleGroupItem} from '@/components/ui/toggle-group';
 import {Separator} from '@/components/ui/separator';
-import {PaletteControls} from '@/components/palette-controls';
+import {GridOverlay} from '@/components/banner-grid';
 import {presets} from '@/lib/palettes';
-import {BANNER_SIZES,gridFor,drawBanner} from '@/lib/banner-layout';
+import {BANNER_SIZES,BANNER_LAYOUTS,bannerBlocks,gridFor,drawBanner} from '@/lib/banner-layout';
+import {loadBrandAssets} from '@/lib/brand-assets';
 import {readImageFile,paintBackground} from '@/lib/paint-background';
 
-function GridOverlay({size,layers}) {
-  const grid=gridFor(size);
-  const tracks=(axis,count,color)=>{
-    const length=axis==='column'?size.width:size.height;
-    const track=(length-size.margin*2-24*(count-1))/count;
-    return <g key={`${axis}-${count}`} fill={color} fillOpacity={.035} stroke={color} strokeOpacity={count===2?.6:.3}>
-      {Array.from({length:count},(_,index)=> <rect key={index}
-        x={axis==='column'?size.margin+index*(track+24):size.margin}
-        y={axis==='row'?size.margin+index*(track+24):size.margin}
-        width={axis==='column'?track:size.width-size.margin*2}
-        height={axis==='row'?track:size.height-size.margin*2}
-        strokeWidth={1} vectorEffect="non-scaling-stroke" />)}
-    </g>;
-  };
-  return <svg className="banner-grid" viewBox={`0 0 ${grid.width} ${grid.height}`} aria-hidden="true">
-    {layers.columns2&&tracks('column',2,'#ffb996')}{layers.rows2&&tracks('row',2,'#ffb996')}
-    {layers.columns8&&tracks('column',8,'#9bdeff')}{layers.rows8&&tracks('row',8,'#9bdeff')}
+function Segments({label,value,onChange,options,disabled=false}) {
+  return <ToggleGroup type="single" aria-label={label} value={value} onValueChange={next=>{if(next)onChange(next);}} disabled={disabled} size="sm" spacing={1} className="w-full rounded-lg bg-muted/50 p-1">
+    {options.map(({value:key,label:title,content})=><ToggleGroupItem key={key} value={key} aria-label={title} title={title} className="h-8 min-w-0 flex-1 rounded-md px-1.5 text-[11px] text-muted-foreground data-[state=on]:bg-card data-[state=on]:text-foreground">{content||title}</ToggleGroupItem>)}
+  </ToggleGroup>;
+}
+
+function LayoutIcon({size,layout}) {
+  const blocks=bannerBlocks(size,layout);
+  return <svg viewBox={`0 0 ${size.width} ${size.height}`} className="h-6 w-11" aria-hidden="true">
+    <rect x="8" y="8" width={size.width-16} height={size.height-16} fill="none" stroke="currentColor" strokeOpacity=".45" strokeWidth="20"/>
+    {blocks.map(block=><rect key={block.key} {...block.rect} fill="currentColor" opacity={block.key==='title'?.85:block.key==='descriptor'?.4:1}/>)}
   </svg>;
 }
 
-function Setting({id,label,children}) {
-  return <div className="space-y-2"><Label htmlFor={id} className="text-xs">{label}</Label>{children}</div>;
+function BannerPalette({colors,setColors}) {
+  return <div className="space-y-2">
+    <div className="flex items-center gap-1.5">{colors.map((color,index)=><Input key={index} type="color" aria-label={`Background pigment ${index+1}`} value={color} onChange={event=>setColors(current=>current.map((entry,i)=>i===index?event.target.value.toUpperCase():entry))} className="h-7 min-w-0 flex-1 cursor-pointer border-0 p-0"/>)}
+      <Button size="icon-xs" variant="ghost" aria-label="Add background color" title="Add color" disabled={colors.length>=6} onClick={()=>setColors(current=>[...current,'#F5F0E5'])}><Plus/></Button>
+      <Button size="icon-xs" variant="ghost" aria-label="Remove last background color" title="Remove last color" disabled={colors.length<=2} onClick={()=>setColors(current=>current.slice(0,-1))}><Minus/></Button>
+    </div>
+    <div className="grid grid-cols-4 gap-1">{presets.map(preset=><Button key={preset.name} size="sm" variant="ghost" aria-label={preset.name} title={preset.name} aria-pressed={preset.colors.join()===colors.join()} className="h-6 gap-0 overflow-hidden rounded-sm p-1 aria-pressed:ring-1 aria-pressed:ring-ring" onClick={()=>setColors([...preset.colors])}>{preset.colors.map((color,i)=><i key={i} className="h-3 flex-1" style={{background:color}}/>)}</Button>)}</div>
+  </div>;
 }
 
 export function BannerWorkspace() {
   const [sizeKey,setSizeKey]=useState('square');
   const size=BANNER_SIZES[sizeKey],grid=gridFor(size);
+  const [layout,setLayout]=useState('split');
   const [showGrid,setShowGrid]=useState(true);
   const [layers,setLayers]=useState({columns2:true,rows2:true,columns8:true,rows8:true});
-  const [texts,setTexts]=useState({eyebrow:'A NEW PERSPECTIVE',headline:'Your next\nbig thing.',brand:'idem.',body:'A little color.\nA lot of possibility.'});
-  const [textColor,setTextColor]=useState('#ffffff');
-  const [overlay,setOverlay]=useState(.25);
+  const [texts,setTexts]=useState({title:'Your next\nbig thing.',descriptor:'A little color.\nA lot of possibility.'});
+  const [tone,setTone]=useState('light');
+  const [fade,setFade]=useState({enabled:false,side:'left'});
+  const [assets,setAssets]=useState(null);
   const [source,setSource]=useState('generate');
   const [colors,setColors]=useState([...presets[0].colors]);
   const [background,setBackground]=useState(null);
@@ -54,13 +58,19 @@ export function BannerWorkspace() {
   const [status,setStatus]=useState('');
   const canvas=useRef(null),image=useRef(null),job=useRef(null),fileVersion=useRef(0);
 
-  useEffect(()=>{drawBanner(canvas.current,{size,texts,background:background?.canvas,overlay,textColor});},[size,texts,background,overlay,textColor]);
+  useEffect(()=>{
+    let disposed=false;
+    loadBrandAssets().then(result=>{if(!disposed)setAssets(result);}).catch(()=>{if(!disposed)setStatus('The brand fonts or logo could not be loaded. Reload to try again.');});
+    return ()=>{disposed=true;};
+  },[]);
+  useEffect(()=>{
+    if(assets)drawBanner(canvas.current,{size,texts,layout,tone,logo:assets[tone],background:background?.canvas,fade});
+  },[size,texts,layout,tone,assets,background,fade]);
   useEffect(()=>{
     const preventFileNavigation=event=>{if(Array.from(event.dataTransfer?.types||[]).includes('Files'))event.preventDefault();};
     window.addEventListener('dragover',preventFileNavigation);window.addEventListener('drop',preventFileNavigation);
     return ()=>{job.current?.abort();fileVersion.current++;window.removeEventListener('dragover',preventFileNavigation);window.removeEventListener('drop',preventFileNavigation);};
   },[]);
-
   function cancelPainting() {job.current?.abort();job.current=null;setBusy(false);}
   function setText(key,value) {setTexts(current=>({...current,[key]:value}));}
   function changeSource(value) {
@@ -91,7 +101,8 @@ export function BannerWorkspace() {
   }
   function clearBackground() {cancelPainting();setBackground(null);setStatus('Background removed.');}
   function exportBanner() {
-    if(busy||exporting)return;
+    if(busy||exporting||!assets)return;
+    drawBanner(canvas.current,{size,texts,layout,tone,logo:assets[tone],background:background?.canvas,fade});
     setExporting(true);
     const exportSize={...size};
     canvas.current.toBlob(blob=>{
@@ -104,44 +115,51 @@ export function BannerWorkspace() {
     },'image/png');
   }
 
-  const guides=[['columns2',`2 columns (${grid.halfColumn}px)`],['rows2',`2 rows (${grid.halfRow}px)`],['rows8',`8 rows (${grid.row}px)`],['columns8',`8 columns (${grid.column}px)`]];
+  const gridOptions=[['columns2','2 cols',grid.halfColumn],['rows2','2 rows',grid.halfRow],['columns8','8 cols',grid.column],['rows8','8 rows',grid.row]];
+  const fadeOptions=[['left',ArrowLeft],['top',ArrowUp],['right',ArrowRight],['bottom',ArrowDown]].map(([side,Icon])=>({value:side,label:`Fade from ${side}`,content:<Icon className="size-3.5"/>}));
   return <main className="studio-main">
     <section className="workspace" aria-label="Banner workspace">
       <div className="canvas-stage"><div className="art-frame banner-frame" style={{'--banner-ratio':size.width/size.height}}>
-        <canvas id="banner-canvas" ref={canvas} width={size.width} height={size.height} aria-label={`${size.width} by ${size.height} banner preview`} aria-busy={busy} />
+        <canvas id="banner-canvas" ref={canvas} width={size.width} height={size.height} aria-label={`${size.width} by ${size.height} banner preview`} aria-busy={busy||!assets}/>
+        {!assets&&<div className="banner-loading">Loading brand assets…</div>}
         {showGrid&&<GridOverlay size={size} layers={layers}/>}
       </div></div>
-      <div className="export-bar" aria-label="Export controls"><span className="text-[11px] text-muted-foreground">{size.width} × {size.height} px</span><Button size="sm" variant="outline" className="text-xs" onClick={exportBanner} disabled={busy||exporting}>{exporting?'Exporting…':'Export PNG'}</Button></div>
+      <div className="export-bar" aria-label="Export controls"><span className="text-[11px] text-muted-foreground">{size.width} × {size.height} px</span><Button size="sm" variant="outline" className="text-xs" onClick={exportBanner} disabled={busy||exporting||!assets}>{exporting?'Exporting…':'Export PNG'}</Button></div>
       <p id="status" role="status" aria-live="polite">{status}</p>
     </section>
-    <aside className="settings-panel" aria-label="Banner settings">
-      <section className="space-y-3"><h2 className="text-xs font-semibold">Banner</h2>
-        <Setting id="banner-size" label="Size"><Select value={sizeKey} onValueChange={setSizeKey}><SelectTrigger id="banner-size" className="w-full text-xs"><SelectValue/></SelectTrigger><SelectContent>{Object.entries(BANNER_SIZES).map(([key,value])=><SelectItem key={key} value={key}>{value.label}</SelectItem>)}</SelectContent></Select></Setting>
+    <aside className="settings-panel banner-settings" aria-label="Banner settings">
+      <section className="space-y-3">
+        <div className="flex items-center justify-between"><h2>Format</h2><span className="text-[10px] text-muted-foreground">{size.width} × {size.height}</span></div>
+        <Segments label="Banner size" value={sizeKey} onChange={setSizeKey} options={[{value:'square',label:'Square 1024 by 1024',content:'1:1'},{value:'landscape',label:'Landscape 1920 by 1080',content:'16:9'}]}/>
+        <div className="flex items-center justify-between"><h2>Layout</h2><span className="text-[10px] text-muted-foreground">{BANNER_LAYOUTS.find(item=>item.id===layout).label}</span></div>
+        <Segments label="Banner layout" value={layout} onChange={setLayout} options={BANNER_LAYOUTS.map(item=>({value:item.id,label:`${item.label} layout`,content:<LayoutIcon size={size} layout={item.id}/>}))}/>
       </section>
       <Separator/>
-      <section className="space-y-3" aria-labelledby="grid-heading">
-        <div className="flex items-center justify-between"><Label id="grid-heading" htmlFor="show-grid" className="text-xs font-semibold">Show grid</Label><Switch id="show-grid" checked={showGrid} onCheckedChange={setShowGrid}/></div>
-        {guides.map(([key,label])=><div key={key} className="flex items-center justify-between gap-2"><Label htmlFor={`grid-${key}`} className="text-[11px] font-normal text-muted-foreground">{label}</Label><Switch id={`grid-${key}`} aria-label={label} checked={layers[key]} disabled={!showGrid} onCheckedChange={checked=>setLayers(current=>({...current,[key]:checked}))}/></div>)}
-        <p className="text-[10px] text-muted-foreground">24 px gutters · {size.margin} px margins · guides don’t export</p>
+      <section className="space-y-2" aria-label="Grid controls">
+        <div className="flex items-center justify-between"><Label htmlFor="show-grid" className="text-[11px] font-semibold">Grid</Label><Switch id="show-grid" size="sm" checked={showGrid} onCheckedChange={setShowGrid}/></div>
+        <ToggleGroup type="multiple" aria-label="Grid layers" value={Object.keys(layers).filter(key=>layers[key])} onValueChange={selected=>setLayers(Object.fromEntries(gridOptions.map(([key])=>[key,selected.includes(key)])))} disabled={!showGrid} size="sm" spacing={1} className="w-full rounded-lg bg-muted/50 p-1">
+          {gridOptions.map(([key,label,track])=><ToggleGroupItem key={key} value={key} aria-label={label} title={`${label} · ${track}px`} className="h-7 min-w-0 flex-1 rounded-md px-1 text-[10px] data-[state=on]:bg-card">{label}</ToggleGroupItem>)}
+        </ToggleGroup>
+        <p className="text-[10px] text-muted-foreground">44 px margins · 24 px gutters</p>
       </section>
       <Separator/>
-      <section className="space-y-4" aria-labelledby="text-heading"><h2 id="text-heading" className="text-xs font-semibold">Text</h2>
-        <Setting id="banner-eyebrow" label="Eyebrow"><Input id="banner-eyebrow" className="text-xs" maxLength={100} value={texts.eyebrow} onChange={event=>setText('eyebrow',event.target.value)}/></Setting>
-        <Setting id="banner-headline" label="Headline"><Textarea id="banner-headline" className="min-h-20 text-xs" maxLength={180} value={texts.headline} onChange={event=>setText('headline',event.target.value)}/></Setting>
-        <Setting id="banner-brand" label="Brand"><Input id="banner-brand" className="text-xs" maxLength={80} value={texts.brand} onChange={event=>setText('brand',event.target.value)}/></Setting>
-        <Setting id="banner-body" label="Supporting text"><Textarea id="banner-body" className="min-h-20 text-xs" maxLength={600} value={texts.body} onChange={event=>setText('body',event.target.value)}/></Setting>
-        <div className="flex items-center justify-between"><Label htmlFor="banner-text-color" className="text-xs">Text color</Label><Input id="banner-text-color" type="color" className="h-8 w-12 p-1" value={textColor} onChange={event=>setTextColor(event.target.value)}/></div>
+      <section className="space-y-3" aria-label="Banner content">
+        <div className="space-y-1.5"><div className="flex justify-between"><Label htmlFor="banner-title" className="text-[11px]">Title</Label><span className="text-[9px] text-muted-foreground">Literatura Past</span></div><Textarea id="banner-title" rows={2} className="min-h-16 resize-y text-xs" maxLength={180} value={texts.title} onChange={event=>setText('title',event.target.value)}/></div>
+        <div className="space-y-1.5"><div className="flex justify-between"><Label htmlFor="banner-descriptor" className="text-[11px]">Descriptor</Label><span className="text-[9px] text-muted-foreground">ABC Areal</span></div><Textarea id="banner-descriptor" rows={2} className="min-h-14 resize-y text-xs" maxLength={600} value={texts.descriptor} onChange={event=>setText('descriptor',event.target.value)}/></div>
+        <div className="flex items-center gap-3"><Label className="shrink-0 text-[11px]">Text & logo</Label><Segments label="Text and logo color" value={tone} onChange={setTone} options={[{value:'light',label:'Light text and logo',content:<><Sun className="size-3"/>Light</>},{value:'dark',label:'Dark text and logo',content:<><Moon className="size-3"/>Dark</>}]}/></div>
       </section>
       <Separator/>
-      <section className="space-y-4" aria-labelledby="background-heading"><h2 id="background-heading" className="text-xs font-semibold">Background</h2>
-        <Setting id="background-source" label="Source"><Select value={source} onValueChange={changeSource}><SelectTrigger id="background-source" className="w-full text-xs"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="generate">Generate from colors</SelectItem><SelectItem value="upload">Upload and paint image</SelectItem></SelectContent></Select></Setting>
-        {source==='generate'?<PaletteControls colors={colors} setColors={setColors}/>:<div className="space-y-2">
-          <Label className="upload-drop" htmlFor="banner-file"><strong className="font-medium text-foreground">Choose an image</strong><span>or drop it here</span><span className="text-[9px]">JPG, PNG, WebP · up to 20 MB</span><Input id="banner-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Upload banner background" onChange={event=>{loadFile(event.target.files[0]);event.target.value='';}} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();loadFile(event.dataTransfer.files[0]);}}/></Label>
-          <p className="wrap-anywhere text-[10px] text-muted-foreground">{fileName||'Your image is painted locally, using the Upload style.'}</p>
+      <section className="space-y-3" aria-label="Background controls">
+        <div className="flex items-center justify-between"><h2>Background</h2>{background&&<Button variant="ghost" size="icon-xs" aria-label="Remove background" title="Remove background" onClick={clearBackground}><X/></Button>}</div>
+        <Segments label="Background source" value={source} onChange={changeSource} options={[{value:'generate',label:'Generate background from colors',content:<><WandSparkles className="size-3"/>Generate</>},{value:'upload',label:'Upload and paint background',content:<><ImageIcon className="size-3"/>Upload</>}]}/>
+        {source==='generate'?<BannerPalette colors={colors} setColors={setColors}/>:<div className="space-y-1.5">
+          <Label className="upload-drop py-4!" htmlFor="banner-file"><span>Choose or drop an image</span><Input id="banner-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Upload banner background" onChange={event=>{loadFile(event.target.files[0]);event.target.value='';}} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();loadFile(event.dataTransfer.files[0]);}}/></Label>
+          <p className="truncate text-[9px] text-muted-foreground" title={fileName}>{fileName||'JPG, PNG, WebP · up to 20 MB'}</p>
         </div>}
-        <Button className="w-full text-xs" disabled={busy||fileLoading||(source==='upload'&&!hasImage)} onClick={generate}>{fileLoading?'Opening image…':busy?'Painting background…':source==='upload'?'Paint background':'Generate background'}</Button>
+        <Button size="sm" className="w-full text-xs" disabled={busy||fileLoading||(source==='upload'&&!hasImage)} onClick={generate}>{fileLoading?'Opening image…':busy?'Painting background…':source==='upload'?'Paint background':'Generate background'}</Button>
         {busy&&<Button variant="outline" size="sm" className="w-full text-xs" onClick={()=>{cancelPainting();setStatus('Painting cancelled.');}}>Cancel</Button>}
-        {background&&<><Setting id="background-dim" label={`Darken background · ${Math.round(overlay*100)}%`}><Input id="background-dim" type="range" min="0" max="80" step="1" value={Math.round(overlay*100)} onChange={event=>setOverlay(Number(event.target.value)/100)} className="h-6 border-0 px-0 shadow-none"/></Setting><Button size="sm" variant="outline" className="w-full text-xs" onClick={clearBackground}>Remove background</Button></>}
+        <div className="flex items-center justify-between"><Label htmlFor="banner-fade" className="text-[11px] font-semibold">Fade</Label><Switch id="banner-fade" size="sm" checked={fade.enabled} onCheckedChange={enabled=>setFade(current=>({...current,enabled}))}/></div>
+        <Segments label="Fade direction" value={fade.side} onChange={side=>setFade(current=>({...current,side}))} options={fadeOptions} disabled={!fade.enabled}/>
       </section>
     </aside>
   </main>;

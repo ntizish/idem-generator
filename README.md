@@ -27,7 +27,7 @@ vercel deploy --prod
 
 ## Interface
 
-The interface uses React, Vite, Tailwind CSS, and [shadcn/ui](https://ui.shadcn.com/docs/installation/vite). Official component source is in `src/components/ui/`: Button, Input, Label, Tabs, Separator, Select, Textarea, and Switch. `components.json` configures JavaScript components and the `@/` import alias. To add components, run `npx shadcn@latest add <component>`.
+The interface uses React, Vite, Tailwind CSS, and [shadcn/ui](https://ui.shadcn.com/docs/installation/vite). Official component source is in `src/components/ui/`: Button, Input, Label, Tabs, Separator, Textarea, Switch, and Toggle Group. `components.json` configures JavaScript components and the `@/` import alias. To add components, run `npx shadcn@latest add <component>`.
 
 The app defaults to dark mode using shared CSS theme tokens in `src/index.css`. `src/app.jsx` owns the workspace and palette state. The canvas controllers in `src/engines/` handle Still and Upload rendering and exports. Banner state and composition live in `src/components/banner-workspace.jsx`; grid geometry and export drawing are shared in `src/lib/banner-layout.js`. The unchanged paint worker is served from `public/painter.js`.
 
@@ -59,8 +59,10 @@ Images keep their proportions and always render with a 3840-pixel longest edge, 
 
 Open `/banner` for the grid-based banner workspace. Choose 1024 × 1024 or 1920 × 1080. Both use 44 px margins on all four sides and 24 px gutters with independently toggleable 2-column, 2-row, 8-column, and 8-row guides. Text blocks span whole grid tracks; editing content never moves their grid anchors. Longer content wraps and scales within its assigned block.
 
-Edit eyebrow, headline, brand, supporting text, and text color from the right panel. This is a starter composition for the upcoming layout presets, inspired by the supplied brand reference. It uses system serif and sans-serif fonts; the proprietary Figma fonts are not bundled.
+The banner contains exactly three elements: a title in the bundled Literatura Past face, a descriptor in bundled ABC Areal Medium, and the supplied full idem logo. Four compositions—Split, Editorial, Stack, and Offset—have separate grid placements for square and landscape formats. All elements stay inside whole grid spans; the logo keeps its original 958:284 proportions. Light/dark ink selects the matching logo artwork and text color. Exports wait for both brand fonts and logos to load.
 
-Generate a background from the same palettes and worker as Still, or upload an image and apply the same oil-paint effect as Upload. Backgrounds render with a 3840 px longest edge and are center-cropped to the banner without stretching. Switching banner sizes preserves the painted background. Darkening can be adjusted after painting. All images remain local.
+Format, layout, ink, background source, grid layers, and fade direction use compact segmented controls. The sidebar has only two text fields and compact pigment/palette controls. Assets are served locally from `public/brand/` and `public/fonts/`.
 
-PNG export uses the selected banner dimensions, includes editable text as rendered, and always excludes the SVG grid overlay. `/layered` now opens Banner. The banner regression check covers exact screenshot grid geometry, grid-aligned text boxes, text fitting, background crop proportions, and guide-free export drawing.
+Generate a background from the same palettes and worker as Still, or upload an image and apply the same oil-paint effect as Upload. Backgrounds render with a 3840 px longest edge and are center-cropped to the banner without stretching. Switching banner sizes preserves the painted background. A Fade switch enables or removes a black gradient layer above the background and below the three elements. Four arrow segments select the opaque edge: left, top, right, or bottom. The gradient runs from alpha 1 at that edge to alpha 0 at the opposite edge. It is included in exports; it never darkens the foreground elements. All images remain local.
+
+PNG export uses the selected banner dimensions, includes editable text as rendered, and always excludes the SVG grid overlay. `/layered` now opens Banner. The banner regression check covers exact grid geometry, all eight layouts, bundled fonts and both logos, text fitting, logo proportions, directional fade pixels, cancellation, and guide-free PNG exports. Run `node scripts/check-banner.mjs --samples` to save branded export previews and layout contact sheets in `/tmp`.

@@ -16,8 +16,13 @@ try {
       assert(html.includes('aria-label="Banner workspace"'));
       assert(html.includes('id="banner-canvas" width="1024" height="1024"'));
       assert(html.includes('viewBox="0 0 1024 1024"'));
-      assert.equal((html.match(/<rect /g)||[]).length,20,'Preview must include the 2- and 8-track row/column overlays');
-      for(const id of ['banner-size','show-grid','banner-headline','banner-brand','banner-body','background-source'])assert(html.includes(`id="${id}"`));
+      const overlay=html.match(/<svg class="banner-grid"[\s\S]*?<\/svg>/)?.[0];
+      assert.equal((overlay?.match(/<rect /g)||[]).length,20,'Preview must include the 2- and 8-track row/column overlays');
+      for(const id of ['show-grid','banner-title','banner-descriptor','banner-fade'])assert(html.includes(`id="${id}"`));
+      for(const label of ['Banner size','Banner layout','Background source','Fade direction','Fade from left','Fade from top','Fade from right','Fade from bottom'])assert(html.includes(`aria-label="${label}"`));
+      assert(!html.includes('role="combobox"'),'Banner controls must use compact segments, not dropdowns');
+      assert(!html.includes('banner-eyebrow')&&!html.includes('banner-brand'));
+      assert(html.includes('Literatura Past')&&html.includes('ABC Areal'));
       assert(html.includes('24 px gutters'));
     } else assert(html.includes('id="painting"'));
   }
