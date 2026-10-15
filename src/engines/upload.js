@@ -1,3 +1,9 @@
+export function mountUpload(getColors) {
+const removers=[];
+function listen(target,type,handler){
+  target.addEventListener(type,handler);
+  removers.push(()=>target.removeEventListener(type,handler));
+}
 const $ = s => document.querySelector(s);
 const canvas = $('#painting');
 let source = null, worker = null, busy = false, ready = false, seed = 0, filename = 'image', loadVersion = 0;
@@ -91,23 +97,23 @@ function generate() {
     worker.postMessage({sourcePixels: pixels, seed, width: source.width, height: source.height}, [pixels]);
   } catch { fail('The painting could not be started. Please try again.'); }
 }
-$('#image-file').addEventListener('change', event => {
+listen($('#image-file'),'change', event => {
   loadFile(event.target.files[0]); event.target.value = '';
 });
 const dropZone = $('#drop-zone');
-for (const type of ['dragenter', 'dragover']) dropZone.addEventListener(type, event => {
+for (const type of ['dragenter', 'dragover']) listen(dropZone,type, event => {
   event.preventDefault(); dropZone.classList.add('dragging');
 });
-for (const type of ['dragleave', 'drop']) dropZone.addEventListener(type, event => {
+for (const type of ['dragleave', 'drop']) listen(dropZone,type, event => {
   event.preventDefault(); dropZone.classList.remove('dragging');
 });
-dropZone.addEventListener('drop', event => loadFile(event.dataTransfer.files[0]));
+listen(dropZone,'drop', event => loadFile(event.dataTransfer.files[0]));
 // Avoid navigating away if a file lands just outside the drop zone.
-window.addEventListener('dragover', event => event.preventDefault());
-window.addEventListener('drop', event => event.preventDefault());
-window.addEventListener('pagehide', () => worker?.terminate());
-$('#generate').addEventListener('click', generate);
-$('#download').addEventListener('click', () => {
+listen(window,'dragover', event => event.preventDefault());
+listen(window,'drop', event => event.preventDefault());
+listen(window,'pagehide', () => worker?.terminate());
+listen($('#generate'),'click', generate);
+listen($('#download'),'click', () => {
   if (!ready || busy) return;
   canvas.toBlob(blob => {
     if (!blob) { $('#status').textContent = 'Unable to save this image. Please try again.'; return; }
@@ -118,3 +124,6 @@ $('#download').addEventListener('click', () => {
     $('#status').textContent = 'Your PNG is ready to save.';
   }, 'image/png');
 });
+
+return {destroy(){removers.forEach(remove=>remove());worker?.terminate();loadVersion++;}};
+}

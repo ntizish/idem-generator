@@ -1,7 +1,7 @@
 import {readFile,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import {deflateSync} from 'node:zlib';
-const source=await readFile(new URL('../painter.js',import.meta.url),'utf8');
+const source=await readFile(new URL('../public/painter.js',import.meta.url),'utf8');
 let lastStyle;
 function render(colors,seed,width=320,height=200){let output;const self={postMessage(data){if(data.error)throw Error(data.error);if(data.pixels)output=data;}};new Function('self',source)(self);self.onmessage({data:{colors,seed,width,height}});assert(output);lastStyle=output.style;return new Uint8Array(output.pixels);}
 const palette=['#DFD2AE','#856333','#1C2020','#4A292C','#82908A'];

@@ -7,22 +7,29 @@ A small local generator for abstract oil-paint textures. Pick two to six colors,
 With Node.js installed:
 
 ```sh
+npm install
 npm start
 ```
 
-Open http://127.0.0.1:5173. No installation, API keys, external assets, or network services are required. Stop the server with Ctrl+C.
+Open http://127.0.0.1:5173. Install the dependencies once. The app runs locally without API keys or external image services. Stop the server with Ctrl+C.
 
 ## Deploy
 
 Production: https://idem-generator.vercel.app
 
-`npm run build` copies the browser assets into `dist/`. Vercel uses `vercel.json` to build and serve that directory, with clean URLs for `/upload` and `/layered`.
+`npm run build` bundles the React application with Vite into `dist/`. Vercel uses `vercel.json` to serve the app and support direct navigation to `/upload` and `/banner`.
 
 To deploy the current workspace again with the Vercel CLI:
 
 ```sh
 vercel deploy --prod
 ```
+
+## Interface
+
+The interface uses React, Vite, Tailwind CSS, and [shadcn/ui](https://ui.shadcn.com/docs/installation/vite). Official component source is in `src/components/ui/`: Button, Input, Label, Tabs, Separator, Select, Textarea, and Switch. `components.json` configures JavaScript components and the `@/` import alias. To add components, run `npx shadcn@latest add <component>`.
+
+The app defaults to dark mode using shared CSS theme tokens in `src/index.css`. `src/app.jsx` owns the workspace and palette state. The canvas controllers in `src/engines/` handle Still and Upload rendering and exports. Banner state and composition live in `src/components/banner-workspace.jsx`; grid geometry and export drawing are shared in `src/lib/banner-layout.js`. The unchanged paint worker is served from `public/painter.js`.
 
 ## How it paints
 
@@ -48,8 +55,12 @@ Open `/upload`, or choose **Upload** in the header. Choose or drop a JPG, PNG, o
 
 Images keep their proportions and always render with a 3840-pixel longest edge, matching the Still canvas’s long edge. Smaller sources are enlarged before painting, so brushwork and the final PNG are produced at full export resolution. Transparent areas use an ivory ground. Images are decoded and painted in the browser and are never sent to a server.
 
-## Living layers
+## Banner constructor
 
-Open `/layered`, or choose **Layered** in the header. This starts with a finished painting and continuously deposits small, curved bristle strokes on top. Colors are sampled from the original painting to preserve its composition. Existing marks remain; the animation never clears the canvas or generates replacement compositions. Pause/play, frame export, and video recording are available at 1280 × 800. Hidden tabs pause playback; reduced-motion preferences start the page paused.
+Open `/banner` for the grid-based banner workspace. Choose 1024 × 1024 or 1920 × 1080. Both use 44 px margins on all four sides and 24 px gutters with independently toggleable 2-column, 2-row, 8-column, and 8-row guides. Text blocks span whole grid tracks; editing content never moves their grid anchors. Longer content wraps and scales within its assigned block.
 
-The layered regression check runs 33 seconds of simulated playback and verifies that strokes accumulate without clearing or redrawing the base painting or launching another painting worker.
+Edit eyebrow, headline, brand, supporting text, and text color from the right panel. This is a starter composition for the upcoming layout presets, inspired by the supplied brand reference. It uses system serif and sans-serif fonts; the proprietary Figma fonts are not bundled.
+
+Generate a background from the same palettes and worker as Still, or upload an image and apply the same oil-paint effect as Upload. Backgrounds render with a 3840 px longest edge and are center-cropped to the banner without stretching. Switching banner sizes preserves the painted background. Darkening can be adjusted after painting. All images remain local.
+
+PNG export uses the selected banner dimensions, includes editable text as rendered, and always excludes the SVG grid overlay. `/layered` now opens Banner. The banner regression check covers exact screenshot grid geometry, grid-aligned text boxes, text fitting, background crop proportions, and guide-free export drawing.

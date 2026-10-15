@@ -1,6 +1,6 @@
 import {readFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
-const painter = await readFile(new URL('../painter.js', import.meta.url), 'utf8');
+const painter = await readFile(new URL('../public/painter.js', import.meta.url), 'utf8');
 function render(sourcePixels, width=160, height=100) {
   let result;
   const self = {postMessage(data) {if (!data.progress) result = data;}};

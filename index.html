@@ -1,22 +1,5 @@
 <!doctype html>
-<html lang="en">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pigment — Still</title><link rel="stylesheet" href="/style.css"></head>
-<body>
-<header class="toolbar"><nav class="page-nav" aria-label="Generator mode"><a href="/" aria-current="page">Still</a><a href="/upload">Upload</a><a href="/layered">Layered</a></nav></header>
-<main>
-<section class="workspace" aria-label="Canvas workspace">
-<div class="canvas-stage"><div class="art-frame">
-<canvas id="painting" width="3840" height="2400" aria-label="Generated abstract oil painting"></canvas>
-
-<div id="loading"><span class="spinner" aria-hidden="true"></span><span id="progress">Preparing canvas…</span></div>
-</div></div>
-<div class="export-bar" aria-label="Export controls"><span id="output-size">3840 × 2400 px</span><div class="export-actions"><button id="download" class="download" disabled>Export PNG</button></div></div>
-<p id="status" role="status" aria-live="polite"></p>
-</section>
-<aside aria-label="Still settings"><div class="panel-section"><div class="panel-heading"><h2>Colors</h2><span id="color-count">5 colors</span></div>
-<div id="colors"></div><button id="add" class="add">＋ Add a color</button></div>
-<div class="panel-section"><h2>Palettes</h2><div class="presets" id="presets"></div></div>
-<button id="generate" class="primary"><span>Generate</span></button></aside>
-</main>
-<script type="module" src="/app.js"></script>
-</body></html>
+<html lang="en" class="dark">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Pigment</title></head>
+<body><div id="root"></div><script type="module" src="/src/main.jsx"></script></body>
+</html>
