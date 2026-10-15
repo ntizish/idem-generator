@@ -16,7 +16,7 @@ Open http://127.0.0.1:5173. No installation, API keys, external assets, or netwo
 
 Production: https://idem-generator.vercel.app
 
-`npm run build` copies the browser assets into `dist/`. Vercel uses `vercel.json` to build and serve that directory, with clean URLs for `/animate` and `/layered`.
+`npm run build` copies the browser assets into `dist/`. Vercel uses `vercel.json` to build and serve that directory, with clean URLs for `/upload` and `/layered`.
 
 To deploy the current workspace again with the Vercel CLI:
 
@@ -30,7 +30,7 @@ The browser first creates a new abstract color composition from the palette and 
 
 This is a reduced procedural brush model, not a full fluid solver. It is inspired by the idea of bristle-level pigment interaction in [Wetbrush](https://developer.nvidia.com/blog/worlds-first-real-time-3d-oil-painting-simulator/), but does not implement that research system. Rendering runs in a worker to keep the controls responsive. Each painting uses a fresh random seed, recorded in the downloaded filename.
 
-Color changes apply to the next painting. The saved PNG is the full-resolution current canvas, without the frame or interface. Palettes and images stay in memory until you save an image. This is a procedural approximation of oil paint; it does not use an AI model or reproduce a source photograph.
+Color changes apply to the next painting. The saved PNG is the full-resolution current canvas, without the frame or interface. Palettes and images stay in memory until you save an image. This is a procedural approximation of oil paint; it does not use an AI model. The Upload page uses the same brushes to repaint a source image.
 
 `npm run check` checks JavaScript syntax.
 
@@ -42,14 +42,14 @@ Each seed also chooses brush scale and proportions, stroke density and curvature
 
 The starter palettes use deep charcoal, wine reds, ochre, muted blue-green, and aged ivory. A subtle seeded finishing pass adds fine monochrome grain, uneven warm varnish, and sparse soft wear flecks while retaining the brush relief and palette. No source painting or scanned texture is used.
 
-## Moving paintings
+## Image studies
 
-Open `/animate`, or choose **Moving** in the header. It generates textured variations using the same painter worker and progressively reveals each with moving, curved bristle masks. New pigment sources arrive in the background and replace the previous painting through brush contacts rather than full-frame fades. This is animated painting/repainting of generated textures, not a fluid simulation or deformation of a finished image.
+Open `/upload`, or choose **Upload** in the header. Choose or drop a JPG, PNG, or WebP image up to 20 MB, then select **Paint this image**. The same local painter samples pigment from the image instead of generating an abstract color field. The original brush sizes, density, and bristle behavior add paint relief, lighting, and the studio’s aged finish while taking colors from the source composition. Paint again for another seeded variation, or save the result as PNG.
 
-Moving paintings use 1280 × 800 for playback; the Still page retains native 3840 × 2400 output. Pause/play, save the current frame as PNG, or record 12 seconds as WebM (MP4 on supported browsers). Hidden tabs pause playback and end any current recording. Reduced-motion preferences start the page paused. Everything runs locally.
+Images keep their proportions, with the longest edge capped at 1920 pixels and no enlargement. Transparent areas use an ivory ground. Images are decoded and painted in the browser and are never sent to a server.
 
 ## Living layers
 
-Open `/layered`, or choose **Layered** in the header. This starts with a finished painting and continuously deposits small, curved bristle strokes on top. Colors are sampled from the original painting to preserve its composition. Existing marks remain; the animation never clears the canvas or generates replacement compositions. Pause/play, frame export, and video recording work as on the Moving page, at 1280 × 800.
+Open `/layered`, or choose **Layered** in the header. This starts with a finished painting and continuously deposits small, curved bristle strokes on top. Colors are sampled from the original painting to preserve its composition. Existing marks remain; the animation never clears the canvas or generates replacement compositions. Pause/play, frame export, and video recording are available at 1280 × 800. Hidden tabs pause playback; reduced-motion preferences start the page paused.
 
 The layered regression check runs 33 seconds of simulated playback and verifies that strokes accumulate without clearing or redrawing the base painting or launching another painting worker.

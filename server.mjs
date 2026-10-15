@@ -2,7 +2,7 @@ import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('.', import.meta.url));
-const files = { '/layered':'layered.html', '/layered/':'layered.html', '/animate':'animate.html', '/animate/':'animate.html', '/animation.js':'animation.js', '/':'index.html', '/index.html':'index.html', '/app.js':'app.js', '/painter.js':'painter.js', '/style.css':'style.css' };
+const files = { '/layered':'layered.html', '/layered/':'layered.html', '/upload':'upload.html', '/upload/':'upload.html', '/upload.js':'upload.js', '/animation.js':'animation.js', '/':'index.html', '/index.html':'index.html', '/app.js':'app.js', '/painter.js':'painter.js', '/style.css':'style.css' };
 const types = { html:'text/html', js:'text/javascript', css:'text/css' };
 http.createServer(async (req,res) => {
   const file = files[new URL(req.url, 'http://localhost').pathname];

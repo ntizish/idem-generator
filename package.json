@@ -7,7 +7,7 @@
     "build": "node scripts/build.mjs",
     "dev": "node server.mjs",
     "start": "node server.mjs",
-    "check": "node --check app.js && node --check painter.js && node --check server.mjs && node --check animation.js",
-    "test": "node scripts/check-render.mjs && node scripts/check-layered.mjs"
+    "check": "node --check app.js && node --check painter.js && node --check server.mjs && node --check animation.js && node --check upload.js",
+    "test": "node scripts/check-render.mjs && node scripts/check-layered.mjs && node scripts/check-upload.mjs"
   }
 }

@@ -1,5 +1,5 @@
 // A local pigment and paint-height renderer. No images, fonts, or services are fetched.
-self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
+self.onmessage = ({ data: { colors, seed, width: w, height: h, sourcePixels } }) => {
   try {
     let state = seed >>> 0;
     const random = () => { state += 0x6D2B79F5; let t = state; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
@@ -17,7 +17,9 @@ self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
       lightAngle:range(-2.7,-.45), lightHeight:range(.73,.88), gloss:range(22,38),
       passes:Array.from({length:4},()=>range(.8,1.2))
     };
-    const palette = colors.map(c => [1,3,5].map(i => parseInt(c.slice(i,i+2),16)));
+    const source = sourcePixels ? new Uint8ClampedArray(sourcePixels) : null;
+    if(source && source.length !== w*h*4) throw new Error('The source image dimensions do not match the canvas.');
+    const palette = (colors || []).map(c => [1,3,5].map(i => parseInt(c.slice(i,i+2),16)));
     const tables = Array.from({length:5},()=> Float32Array.from({length:128*128},random));
     function noise(x,y,layer=0) {
       const ix=Math.floor(x),iy=Math.floor(y); let u=x-ix,v=y-iy; u=u*u*(3-2*u); v=v*v*(3-2*v);
@@ -37,20 +39,32 @@ self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
     for(let y=0;y<coarseH;y++)for(let x=0;x<coarseW;x++){const v=field(x/(coarseW-1)*w,y/(coarseH-1)*h);coarse[y*coarseW+x]=v;min=Math.min(min,v);max=Math.max(max,v);}
     function sample(x,y){const u=Math.max(0,Math.min(coarseW-1.001,x/w*(coarseW-1))),v=Math.max(0,Math.min(coarseH-1.001,y/h*(coarseH-1)));const ix=u|0,iy=v|0,fx=u-ix,fy=v-iy;return ((coarse[iy*coarseW+ix]*(1-fx)+coarse[iy*coarseW+ix+1]*fx)*(1-fy)+(coarse[(iy+1)*coarseW+ix]*(1-fx)+coarse[(iy+1)*coarseW+ix+1]*fx)*fy-min)/(max-min);}
     function colorAt(t){const v=Math.max(0,Math.min(.99999,t))*(palette.length-1),i=v|0,f=v-i;return palette[i].map((c,k)=>c*(1-f)+palette[Math.min(i+1,palette.length-1)][k]*f);}
+    // Uploaded images supply spatial pigment instead of an abstract color field.
+    // Bilinear sampling keeps brush pickup smooth across image details.
+    function pigmentAt(x,y){
+      if(!source)return colorAt(sample(x,y));
+      x=Math.max(0,Math.min(w-1,x));y=Math.max(0,Math.min(h-1,y));
+      const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy;
+      const a=(iy*w+ix)*4,b=(iy*w+Math.min(w-1,ix+1))*4;
+      const c=(Math.min(h-1,iy+1)*w+ix)*4,d=(Math.min(h-1,iy+1)*w+Math.min(w-1,ix+1))*4;
+      return [0,1,2].map(k=>(source[a+k]*(1-fx)+source[b+k]*fx)*(1-fy)+(source[c+k]*(1-fx)+source[d+k]*fx)*fy);
+    }
     self.postMessage({progress:'Laying down the first pigments…'});
     for(let y=0;y<h;y++)for(let x=0;x<w;x++){
-      const i=y*w+x,c=colorAt(sample(x,y));
+      const i=y*w+x,c=pigmentAt(x,y);
       for(let k=0;k<3;k++)paint[i*3+k]=c[k];
     }
     // Reduced brush model: each bristle carries pigment, picks up the wet
     // underlayer, and deposits color and height through the same contact mask.
     // No photographic textures or independent embossed shapes are used.
-    const scale=w/1920;
+    const scale=(source ? Math.max(w,h) : w)/1920;
     const clamp=v=>Math.max(0,Math.min(1,v));
     const smooth=v=>{v=clamp(v);return v*v*(3-2*v);};
     const wet=new Float32Array(w*h);
+    // Keep the original brush proportions and coverage for image studies too.
+    // Only adjust stroke counts for the uploaded canvas aspect ratio.
     const sizes=[105,55,24,11].map((size,i)=>size*style.brushScale*style.passes[i]);
-    const counts=[2300,6500,9500,9000].map((count,i)=>Math.round(count*style.density/Math.max(.35,style.brushScale**2*style.width*style.passes[i]**2)));
+    const counts=[2300,6500,9500,9000].map((count,i)=>Math.round(count*style.density*(source ? w*h/(Math.max(w,h)**2*5/8) : 1)/Math.max(.35,style.brushScale**2*style.width*style.passes[i]**2)));
     const pickupRate=1-Math.pow(1-style.pickup,1/scale);
     for(let pass=0;pass<sizes.length;pass++){
       self.postMessage({progress:['Brushing in the first pigments…','Pulling wet colors together…','Scumbling broken layers of paint…','Leaving the last bristle traces…'][pass]});
@@ -69,14 +83,14 @@ self.onmessage = ({ data: { colors, seed, width: w, height: h } }) => {
         const tips=Float32Array.from({length:bristleCount+2},()=>random());
         const carried=new Float32Array((bristleCount+2)*3);
         const tint=(random()-.5)*[7,14,16,13][pass];
-        const startColor=colorAt(sample(cx,cy));
+        const startColor=pigmentAt(cx,cy);
         const loaded=clamp(style.wetness+(random()-.5)*.4);
         const contact=[.55,.8,.86,.7][pass];
         const load=[.09,.23,.6,.32][pass]*(.35+body*1.1)*(.5+random())*style.pigmentLoad;
         const offset=random()*100;
         for(let b=0;b<bristleCount+2;b++){
           const across=(b/bristleCount-.5)*radius*2;
-          const c=colorAt(sample(cx-si*across,cy+co*across));
+          const c=pigmentAt(cx-si*across,cy+co*across);
           for(let k=0;k<3;k++)carried[b*3+k]=c[k]*.75+startColor[k]*.25+tint+(bristles[b]-.5)*4;
         }
         // Scan along the brush. A bristle carries its own evolving color.
