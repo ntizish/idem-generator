@@ -67,12 +67,14 @@
 @media(max-width:850px) { .studio-main { grid-template-columns:minmax(0,1fr) 280px; } .settings-panel { padding:20px; } .canvas-stage { padding:24px; } .export-bar { margin:0 24px; align-items:flex-start; flex-direction:column; gap:10px; } #status { margin:0 24px; } }
 @media(max-width:600px) { .studio-main { height:auto; min-height:calc(100dvh - 64px); grid-template-columns:minmax(0,1fr); } .workspace { min-height:380px; grid-template-rows:minmax(250px,1fr) auto auto; } #painting { max-height:55dvh; } .export-bar { flex-direction:row; align-items:center; flex-wrap:wrap; } #status { min-height:24px; padding-bottom:8px; } .settings-panel { overflow:visible; border-left:0; border-top:1px solid var(--border); padding:24px; } #empty-state { min-height:220px; } }
 @media(prefers-reduced-motion:reduce) { .spinner { animation:none; } }
-.banner-frame { max-width:min(1400px,calc((100dvh - 240px)*var(--banner-ratio))); }
+.banner-frame { --checker-base:#242424; --checker-tile:#2d2d2d; max-width:min(1400px,calc((100dvh - 240px)*var(--banner-ratio))); background-color:var(--checker-base); background-image:conic-gradient(var(--checker-tile) 25%,transparent 0 50%,var(--checker-tile) 0 75%,transparent 0); background-size:24px 24px; }
+.banner-frame[data-tone='dark'] { --checker-base:#6b6b6b; --checker-tile:#747474; }
+.transparency-swatch { background-color:#242424; background-image:conic-gradient(#747474 25%,transparent 0 50%,#747474 0 75%,transparent 0); background-size:8px 8px; }
 #banner-canvas { display:block; width:100%; height:auto; outline:1px solid var(--border); }
 .banner-grid { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
 @media(max-width:600px) { .banner-frame { max-width:calc(55dvh*var(--banner-ratio)); } }
 @font-face { font-family:'Literatura Past'; src:url('/fonts/literatura-past.otf') format('opentype'); font-weight:400; font-style:normal; font-display:block; }
-@font-face { font-family:'ABC Areal'; src:url('/fonts/abc-areal-medium.ttf') format('truetype'); font-weight:500; font-style:normal; font-display:block; }
+@font-face { font-family:'ABC Areal'; src:url('/fonts/abc-areal-regular.ttf') format('truetype'); font-weight:400; font-style:normal; font-display:block; }
 .banner-settings { padding:20px; gap:18px; }
 .banner-settings h2 { font-size:11px; font-weight:600; }
 .banner-loading { position:absolute; inset:0; display:grid; place-items:center; background:var(--background); color:var(--muted-foreground); font-size:11px; }

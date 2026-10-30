@@ -17,41 +17,47 @@ export function gridRect(grid, column, row, columns, rows) {
 }
 
 export const BANNER_LAYOUTS = [
-  {id:'split',label:'Split'}, {id:'editorial',label:'Editorial'},
-  {id:'stack',label:'Stack'}, {id:'offset',label:'Offset'},
+  {id:'inset',label:'Inset'}, {id:'monogram',label:'Monogram'},
+  {id:'signature',label:'Signature'}, {id:'split',label:'Split'},
+  {id:'editorial',label:'Editorial'}, {id:'corner',label:'Corner'},
 ];
+export const DEFAULT_BANNER_LAYOUT = BANNER_LAYOUTS[0].id;
 export const BRAND_FONTS = {title:'"Literatura Past"',descriptor:'"ABC Areal"'};
+export const BRAND_MARKS = {lockup:{width:216,height:61},mark:{width:77,height:61}};
 
-// Separate compositions for each format, expressed exclusively in grid spans.
+// Only the six compositions from Figma section 2528:118, in visual order.
+// Keep the same column relationships in 16:9; adapt row tracks and type to the
+// available height instead of stretching the square artwork horizontally.
 const COMPOSITIONS = {
-  square: {
-    split:      {title:[0,1,4,4],descriptor:[4,6,4,2],logo:[4,5,2,1],font:96},
-    editorial:  {title:[0,0,8,3],descriptor:[4,5,4,2],logo:[0,7,2,1],font:108},
-    stack:      {title:[0,2,8,3],descriptor:[0,6,4,2],logo:[6,0,2,1],font:108},
-    offset:     {title:[2,1,6,4],descriptor:[2,6,4,2],logo:[0,0,2,1],font:104},
-  },
-  landscape: {
-    split:      {title:[0,1,4,5],descriptor:[4,6,4,2],logo:[4,4,2,2],font:148},
-    editorial:  {title:[0,0,6,4],descriptor:[4,5,4,2],logo:[0,6,2,2],font:168},
-    stack:      {title:[0,2,6,3],descriptor:[0,6,4,2],logo:[6,0,2,2],font:160},
-    offset:     {title:[2,1,6,4],descriptor:[4,6,4,2],logo:[0,0,2,2],font:160},
-  },
+  inset:     {title:[2,4,6,2],descriptor:[2,6,6,2],logo:[2,0,2,1],font:130,descriptorFont:32},
+  monogram:  {title:[2,0,6,4],descriptor:[2,6,6,2],logo:[0,0,1,1],font:130,descriptorFont:32,asset:'mark'},
+  signature: {title:[2,4,6,2],descriptor:[2,7,6,1],logo:[2,6,2,1],font:52,landscapeFont:104,descriptorFont:32},
+  split:     {title:[0,6,4,2],descriptor:[5,7,3,1],logo:[5,6,2,1],font:72,descriptorFont:24},
+  editorial: {title:[0,0,8,4],descriptor:[4,6,4,2],logo:[0,6,2,1],font:130,descriptorFont:32},
+  corner:    {title:[0,0,8,4],descriptor:[4,7,4,1],logo:[4,6,2,1],font:130,descriptorFont:24},
 };
 
-export function bannerBlocks(size,layout='split') {
-  const grid=gridFor(size),wide=size.width>size.height;
-  const composition=COMPOSITIONS[wide?'landscape':'square'][layout];
+export function bannerBlocks(size,layout=DEFAULT_BANNER_LAYOUT) {
+  const grid=gridFor(size);
+  const composition=COMPOSITIONS[layout];
   if(!composition)throw new RangeError('Unknown banner layout');
+  const scale=(size.height-size.margin*2)/(BANNER_SIZES.square.height-BANNER_SIZES.square.margin*2);
+  const titleFont=size.width>size.height?(composition.landscapeFont??composition.font):composition.font;
+  const asset=composition.asset||'lockup';
   return [
-    {key:'title',kind:'text',rect:gridRect(grid,...composition.title),fontSize:composition.font,family:BRAND_FONTS.title,weight:400,lineHeight:1.06},
-    {key:'descriptor',kind:'text',rect:gridRect(grid,...composition.descriptor),fontSize:wide?32:24,family:BRAND_FONTS.descriptor,weight:500,lineHeight:1.15},
-    {key:'logo',kind:'image',rect:gridRect(grid,...composition.logo)},
+    {key:'title',kind:'text',rect:gridRect(grid,...composition.title),fontSize:Math.round(titleFont*scale),family:BRAND_FONTS.title,weight:400,lineHeight:1,align:'start'},
+    {key:'descriptor',kind:'text',rect:gridRect(grid,...composition.descriptor),fontSize:Math.round(composition.descriptorFont*scale),family:BRAND_FONTS.descriptor,weight:400,lineHeight:1.1,opacity:.7,align:'start'},
+    {key:'logo',kind:'image',rect:gridRect(grid,...composition.logo),asset,maxWidth:BRAND_MARKS[asset].width*scale,align:'start'},
   ];
 }
 
-export function containRect(sourceWidth,sourceHeight,box) {
-  const scale=Math.min(box.width/sourceWidth,box.height/sourceHeight);
-  return {x:box.x,y:box.y,width:sourceWidth*scale,height:sourceHeight*scale};
+function alignOffset(available,used,align) {
+  return align==='end'?available-used:align==='center'?(available-used)/2:0;
+}
+
+export function containRect(sourceWidth,sourceHeight,box,{maxWidth=box.width,align='start'}={}) {
+  const scale=Math.min(box.width/sourceWidth,box.height/sourceHeight,maxWidth/sourceWidth);
+  return {x:box.x,y:box.y+alignOffset(box.height,sourceHeight*scale,align),width:sourceWidth*scale,height:sourceHeight*scale};
 }
 
 // The chosen side is opaque black; the opposite edge is fully transparent.
@@ -86,22 +92,37 @@ export function wrapText(context,text,maxWidth) {
 }
 
 export function fitText(context,text,block) {
-  let fontSize=block.fontSize,lines;
+  let fontSize=block.fontSize,lines,ascent,descent,height,offsetsX;
+  // Explicit headline breaks are editorial decisions. Scale them before
+  // wrapping, rather than turning a two-line headline into three ragged lines.
+  let headlineLines=block.key==='title'&&text.includes('\n')?text.split('\n'):null;
   while (true) {
     context.font=`${block.weight} ${fontSize}px ${block.family}`;
-    lines=wrapText(context,text,block.rect.width);
-    if (lines.length*fontSize*block.lineHeight<=block.rect.height || fontSize<=8) break;
+    lines=headlineLines||wrapText(context,text,block.rect.width);
+    const metrics=lines.map(line=>context.measureText(line));
+    offsetsX=metrics.map(metric=>metric.actualBoundingBoxLeft);
+    ascent=Math.max(0,...metrics.map(metric=>metric.actualBoundingBoxAscent));
+    descent=Math.max(0,...metrics.map(metric=>metric.actualBoundingBoxDescent));
+    height=ascent+descent+Math.max(0,lines.length-1)*fontSize*block.lineHeight;
+    const fitsWidth=metrics.every(metric=>Math.max(metric.width,metric.actualBoundingBoxRight)+Math.max(0,metric.actualBoundingBoxLeft)<=block.rect.width);
+    // Extremely long explicit lines still need to wrap at the minimum size.
+    if(headlineLines&&!fitsWidth&&fontSize<=8) {headlineLines=null;continue;}
+    if ((fitsWidth&&Math.max(height,lines.length*fontSize*block.lineHeight)<=block.rect.height) || fontSize<=8) break;
     fontSize-=1;
   }
-  return {lines,fontSize,lineHeight:fontSize*block.lineHeight};
+  return {lines,fontSize,lineHeight:fontSize*block.lineHeight,ascent,height,offsetsX,offsetY:alignOffset(block.rect.height,height,block.align)};
 }
 
-// The export surface contains only the artwork. Preview guides live in SVG.
-export function drawBanner(canvas,{size,texts,background,layout='split',tone='light',logo,fade={enabled:false,side:'left'}}) {
+// The export surface contains only the artwork. Checkerboard and guides are
+// preview layers; clearing also removes any previously assigned background.
+export function drawBanner(canvas,{size,texts,background,solidColor,layout=DEFAULT_BANNER_LAYOUT,tone='light',logo,fade={enabled:false,side:'left'}}) {
   if(canvas.width!==size.width)canvas.width=size.width;
   if(canvas.height!==size.height)canvas.height=size.height;
   const context=canvas.getContext('2d');
-  context.fillStyle=tone==='light'?'#141414':'#f4f0e5';context.fillRect(0,0,size.width,size.height);
+  context.clearRect(0,0,size.width,size.height);
+  if(solidColor) {
+    context.fillStyle=solidColor;context.fillRect(0,0,size.width,size.height);
+  }
   if(background) {
     const rect=coverRect(background.width,background.height,size.width,size.height);
     context.drawImage(background,rect.x,rect.y,rect.width,rect.height);
@@ -113,16 +134,17 @@ export function drawBanner(canvas,{size,texts,background,layout='split',tone='li
   }
   for(const block of bannerBlocks(size,layout)) {
     if(block.kind==='image') {
-      if(logo) {
-        const rect=containRect(logo.width,logo.height,block.rect);
-        context.drawImage(logo,rect.x,rect.y,rect.width,rect.height);
+      const artwork=logo?.[block.asset];
+      if(artwork) {
+        const rect=containRect(artwork.width,artwork.height,block.rect,block);
+        context.drawImage(artwork,rect.x,rect.y,rect.width,rect.height);
       }
       continue;
     }
     context.save();context.beginPath();context.rect(block.rect.x,block.rect.y,block.rect.width,block.rect.height);context.clip();
     const fitted=fitText(context,texts[block.key]||'',block);
-    context.fillStyle=tone==='light'?'#ffffff':'#141414';context.textBaseline='top';
-    fitted.lines.forEach((line,index)=>context.fillText(line,block.rect.x,block.rect.y+index*fitted.lineHeight));
+    context.fillStyle=tone==='light'?'#ffffff':'#141414';context.textBaseline='alphabetic';context.globalAlpha=block.opacity??1;
+    fitted.lines.forEach((line,index)=>context.fillText(line,block.rect.x+fitted.offsetsX[index],block.rect.y+fitted.offsetY+fitted.ascent+index*fitted.lineHeight));
     context.restore();
   }
 }

@@ -15,11 +15,18 @@ try {
     if(mode==='banner') {
       assert(html.includes('aria-label="Banner workspace"'));
       assert(html.includes('id="banner-canvas" width="1024" height="1024"'));
+      assert(html.includes('data-tone="light"'),'Preview checkerboard must follow the selected ink tone');
+      assert(html.includes('· Transparent'),'The default export should be identified as transparent');
+      assert(html.includes('aria-label="Solid background"'),'Background controls must offer the Solid tab');
       assert(html.includes('viewBox="0 0 1024 1024"'));
       const overlay=html.match(/<svg class="banner-grid"[\s\S]*?<\/svg>/)?.[0];
       assert.equal((overlay?.match(/<rect /g)||[]).length,20,'Preview must include the 2- and 8-track row/column overlays');
+      assert(!html.includes('Grid layers'),'Grid visibility must have one switch, without individual layer controls');
+      for(const label of ['2 cols','2 rows','8 cols','8 rows'])assert(!html.includes(`aria-label="${label}"`));
       for(const id of ['show-grid','banner-title','banner-descriptor','banner-fade'])assert(html.includes(`id="${id}"`));
       for(const label of ['Banner size','Banner layout','Background source','Fade direction','Fade from left','Fade from top','Fade from right','Fade from bottom'])assert(html.includes(`aria-label="${label}"`));
+      for(const label of ['Inset','Monogram','Signature','Split','Editorial','Corner'])assert(html.includes(`aria-label="${label} layout"`));
+      for(const label of ['Stack','Offset'])assert(!html.includes(`aria-label="${label} layout"`),'Retired compositions must not be selectable');
       assert(!html.includes('role="combobox"'),'Banner controls must use compact segments, not dropdowns');
       assert(!html.includes('banner-eyebrow')&&!html.includes('banner-brand'));
       assert(html.includes('Literatura Past')&&html.includes('ABC Areal'));

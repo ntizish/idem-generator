@@ -1,7 +1,7 @@
 import React from 'react';
 import {gridFor} from '@/lib/banner-layout';
 
-export function GridOverlay({size,layers}) {
+export function GridOverlay({size}) {
   const grid=gridFor(size);
   const tracks=(axis,count,color)=>{
     const length=axis==='column'?size.width:size.height;
@@ -16,8 +16,8 @@ export function GridOverlay({size,layers}) {
     </g>;
   };
   return <svg className="banner-grid" viewBox={`0 0 ${grid.width} ${grid.height}`} aria-hidden="true">
-    {layers.columns2&&tracks('column',2,'#ffb996')}{layers.rows2&&tracks('row',2,'#ffb996')}
-    {layers.columns8&&tracks('column',8,'#9bdeff')}{layers.rows8&&tracks('row',8,'#9bdeff')}
+    {tracks('column',2,'#ffb996')}{tracks('row',2,'#ffb996')}
+    {tracks('column',8,'#9bdeff')}{tracks('row',8,'#9bdeff')}
   </svg>;
 }
 

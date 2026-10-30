@@ -1,3 +1,10 @@
+export const solidBackgrounds = [
+  {name:'Ink',color:'#141414'}, {name:'White',color:'#FFFFFF'},
+  {name:'Ivory',color:'#F4F0E5'}, {name:'Ochre',color:'#AD8543'},
+  {name:'Burgundy',color:'#572329'}, {name:'Rose',color:'#AF8D8A'},
+  {name:'Blue',color:'#293D5D'}, {name:'Sage',color:'#82908A'},
+];
+
 export const presets = [
   {name:'Chiaroscuro',colors:['#DFD2AE','#856333','#1C2020','#4A292C','#82908A']},
   {name:'Crimson & gold',colors:['#E1CBA0','#AD8543','#211B1B','#572329','#963E36']},
