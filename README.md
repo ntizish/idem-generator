@@ -25,6 +25,42 @@ To deploy the current workspace again with the Vercel CLI:
 vercel deploy --prod
 ```
 
+## Generate banners from an agent (MCP)
+
+Connect an agent that supports remote MCP / Streamable HTTP to:
+
+```text
+https://idem-generator.vercel.app/api/mcp
+```
+
+Select **No authentication / None** when adding this public endpoint. It does not provide an OAuth sign-in or client-registration flow. If a client reports that dynamic client registration or Client ID Metadata Documents are missing, it is trying an OAuth connection; recreate the connection without authentication. Clients that require OAuth for every connection need a separate OAuth authorization integration before they can use this server. OAuth discovery paths return 404 rather than the website HTML.
+
+For clients with an `mcpServers` JSON configuration:
+
+```json
+{
+  "mcpServers": {
+    "idem": {
+      "url": "https://idem-generator.vercel.app/api/mcp"
+    }
+  }
+}
+```
+
+Then ask: **“Use idem to generate a landscape banner titled ‘Make room for possibility’, with ‘A little color. A lot of possibility.’ as supporting copy. Use the Midnight & ivory palette and give me the PNG.”**
+
+The server exposes `list_banner_options` and `generate_banner`. Banners use the same grid layouts, bundled brand fonts, full idem logo, and procedural painter as the website. Available controls are `title` (required, up to 240 characters), `descriptor` (up to 600), `format` (`square` or `landscape`), `layout` (`split`, `editorial`, `stack`, `offset`), `palette`, optional custom `colors` (2–6 hex colors), `tone` (`light` or `dark` foreground), `background` (`painted` or `solid`), `fade` (`none`, `left`, `top`, `right`, `bottom`), and optional `seed` (0–4294967295). The default is a square painted banner with white ink and a left fade. For dark ink, usually choose `fade: "none"`.
+
+`generate_banner` returns a JPEG preview, a full-resolution PNG download URL, and structured settings including the seed. For revisions, reuse the seed and settings and change only the desired fields. It creates an independent image; it does not change an open browser workspace. All rendering is procedural, with no model API or API key.
+
+The download URL contains the banner text and settings as an encoded recipe. The PNG is reproduced on demand from that recipe, so links work across cold starts without a database or Blob store. A small per-instance cache avoids repeat rendering, and public downloads can be cached by Vercel's CDN. Links are shareable; anyone with a link can see the banner and decode its text. Keep the recipe version stable when changing rendering behavior. No image uploads or arbitrary remote URLs are accepted by these tools.
+
+The MCP and download routes are Vercel Node.js Functions in the same project as the website. Full painted backgrounds render at 3840 × 2400 before cropping into 1024 × 1024 or 1920 × 1080 banners. Each instance renders one distinct recipe at a time; concurrent duplicates share the work, and other requests receive a retryable busy error. The renderer runs in a worker thread with a 240-second timeout; functions allow up to 300 seconds. PNG downloads stream to avoid Vercel's buffered response-size limit. Native Canvas binaries, fonts, logos, and worker sources are included in the function bundle.
+
+For private use, set `MCP_AUTH_TOKEN` in the Vercel project's environment variables and redeploy. Configure the MCP client to send `Authorization: Bearer <your-token>` (many clients accept `headers` next to `url`). Download URLs are then signed so the recipient can download that exact banner without a separate header. Changing the token invalidates existing links. This is a shared-token integration, not an OAuth login flow. When the token is unset, the MCP is public and callable without credentials.
+
+Locally, `npm start` or `npm run dev` serves both the app and MCP at `http://127.0.0.1:5173/api/mcp`. To use the optional token locally, export it in the shell before starting the app; `.env.example` documents the variable. `npm run test:mcp` checks the real SDK client, discovery, generation, downloads, cold-instance reproduction, validation, concurrency, and authentication. `npm run benchmark:banner` renders a full painted landscape banner into `.context/` and reports duration, output sizes, and peak memory. `node scripts/check-deployed-mcp.mjs https://your-deployment.vercel.app` checks and saves a painted banner from a deployed endpoint.
+
 ## Interface
 
 The interface uses React, Vite, Tailwind CSS, and [shadcn/ui](https://ui.shadcn.com/docs/installation/vite). Official component source is in `src/components/ui/`: Button, Input, Label, Tabs, Separator, Textarea, Switch, and Toggle Group. `components.json` configures JavaScript components and the `@/` import alias. To add components, run `npx shadcn@latest add <component>`.

@@ -3,10 +3,16 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 300,
+      "includeFiles": "{server/**,src/lib/**,public/painter.js,public/fonts/**,public/brand/**,node_modules/@napi-rs/canvas*/**}"
     }
+  },
+  "routes": [
+    {"handle": "filesystem"},
+    {"src": "/api/.*", "status": 404},
+    {"src": "/\\.well-known/.*", "status": 404},
+    {"src": "/.*", "dest": "/index.html"}
   ]
 }
