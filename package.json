@@ -8,18 +8,22 @@
     "dev": "vite",
     "start": "node server.mjs",
     "check": "node --check public/painter.js && node --check src/engines/still.js && node --check src/engines/upload.js && node --check server.mjs && node --check vite.config.js && node --check src/lib/banner-layout.js && node --check src/lib/paint-background.js && node --check src/lib/brand-assets.js",
-    "test": "node scripts/check-render.mjs && node scripts/check-upload.mjs && node scripts/check-banner.mjs && node scripts/check-interface.mjs"
+    "test": "node scripts/check-render.mjs && node scripts/check-upload.mjs && node scripts/check-banner.mjs && node scripts/check-interface.mjs && node scripts/check-mcp.mjs",
+    "test:mcp": "node scripts/check-mcp.mjs",
+    "benchmark:banner": "node scripts/benchmark-banner.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@napi-rs/canvas": "^1.1.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.4.0",
     "lucide-react": "^1.57.0",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@napi-rs/canvas": "^1.0.11",
     "@tailwindcss/vite": "^4.3.3",
     "@vitejs/plugin-react": "^6.1.2",
     "tailwindcss": "^4.3.3",
