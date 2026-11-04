@@ -8,15 +8,32 @@ import {paintBackground,readImageFile} from '../src/lib/paint-background.js';
 for(const [file,family] of [['literatura-past.otf','Literatura Past'],['abc-areal-medium.ttf','ABC Areal']]) {
   assert(GlobalFonts.registerFromPath(fileURLToPath(new URL(`../public/fonts/${file}`,import.meta.url)),family),`Load ${family}`);
 }
-const logos={light:await loadImage(fileURLToPath(new URL('../public/brand/idem-white.png',import.meta.url))),dark:await loadImage(fileURLToPath(new URL('../public/brand/idem-ink.png',import.meta.url)))};
-assert.equal(logos.light.width,958);assert.equal(logos.light.height,284);
-assert.equal(logos.dark.width,958);assert.equal(logos.dark.height,284);
+const logos={light:await loadImage(fileURLToPath(new URL('../public/brand/idem-lockup-white.png',import.meta.url))),dark:await loadImage(fileURLToPath(new URL('../public/brand/idem-lockup-ink.png',import.meta.url)))};
+assert.equal(logos.light.width,864);assert.equal(logos.light.height,244);
+assert.equal(logos.dark.width,864);assert.equal(logos.dark.height,244);
+const symbols={light:await loadImage(fileURLToPath(new URL('../public/brand/idem-symbol-white.png',import.meta.url))),dark:await loadImage(fileURLToPath(new URL('../public/brand/idem-symbol-ink.png',import.meta.url)))};
 const square=gridFor(BANNER_SIZES.square),landscape=gridFor(BANNER_SIZES.landscape);
 assert.deepEqual([square.margin,square.gap,square.halfColumn,square.halfRow,square.column,square.row],[44,24,456,456,96,96]);
 assert.deepEqual([landscape.margin,landscape.gap,landscape.halfColumn,landscape.halfRow,landscape.column,landscape.row],[44,24,904,484,208,103]);
 const texts={title:'Your next\nbig thing.',descriptor:'A little color.\nA lot of possibility.'};
 const white=createCanvas(64,64);white.getContext('2d').fillStyle='white';white.getContext('2d').fillRect(0,0,64,64);
 function pixel(canvas,x,y){return Array.from(canvas.getContext('2d').getImageData(x,y,1,1).data);}
+
+// Literal measurements from the six approved Figma frames, in canvas pixels.
+const figmaFrames={
+  'logo-top':[[284,524,696,130],[284,771,696,209],[284,44,216,61],130,32,'lockup'],
+  offset:[[284,44,696,456],[284,771,696,209],[44,44,77,61],130,32,'symbol'],
+  stack:[[284,524,696,216],[284,884,696,96],[284,764,216,61],52,32,'lockup'],
+  split:[[44,764,456,216],[644,884,336,96],[644,764,216,61],72,24,'lockup'],
+  editorial:[[44,44,936,456],[524,771,456,209],[44,764,216,61],130,32,'lockup'],
+  footer:[[44,44,936,456],[524,884,456,96],[524,764,216,61],130,24,'lockup'],
+};
+for(const [layout,expected] of Object.entries(figmaFrames)) {
+  const blocks=bannerBlocks(BANNER_SIZES.square,layout);
+  assert.deepEqual(blocks.map(({rect:{x,y,width,height}})=>[x,y,width,height]),expected.slice(0,3),`${layout}: match Figma geometry`);
+  assert.deepEqual([blocks[0].fontSize,blocks[1].fontSize,blocks[2].asset],expected.slice(3));
+  assert.equal(blocks[1].opacity,.7);
+}
 
 for(const size of Object.values(BANNER_SIZES)) {
   const grid=gridFor(size),last=gridRect(grid,7,7,1,1);
@@ -30,7 +47,8 @@ for(const size of Object.values(BANNER_SIZES)) {
     assert.equal(blocks[0].family,BRAND_FONTS.title);assert.equal(blocks[1].family,BRAND_FONTS.descriptor);
     for(const block of blocks) {
       const r=block.rect;
-      assert.equal((r.x-44)%(grid.column+24),0);assert.equal((r.y-44)%(grid.row+24),0);
+      assert.equal((r.x-44)%(grid.column+24),0);
+      assert.equal((r.y-44-(block.key==='descriptor'&&['logo-top','offset','editorial'].includes(layout)?7:0))%(grid.row+24),0);
       assert(r.x+r.width<=size.width-44);assert(r.y+r.height<=size.height-44);
     }
     for(let i=0;i<blocks.length;i++)for(let j=i+1;j<blocks.length;j++) {
@@ -43,21 +61,22 @@ for(const size of Object.values(BANNER_SIZES)) {
       assert(fit.lines.every(line=>ctx.measureText(line).width<=block.rect.width));
       assert(fit.lines.length*fit.lineHeight<=block.rect.height,'Brand text must fit inside its grid block');
     }
-    const logoRect=containRect(958,284,blocks[2].rect);
-    assert(Math.abs(logoRect.width/logoRect.height-958/284)<1e-9);
+    const artwork=blocks[2].asset==='symbol'?symbols.light:logos.light;
+    const logoRect=containRect(artwork.width,artwork.height,blocks[2].rect);
+    assert(Math.abs(logoRect.width/logoRect.height-artwork.width/artwork.height)<1e-9);
     assert.equal(logoRect.x,blocks[2].rect.x);assert.equal(logoRect.y,blocks[2].rect.y);
     for(const tone of ['light','dark']) {
-      drawBanner(canvas,{size,texts,layout,tone,logo:logos[tone]});
+      drawBanner(canvas,{size,texts,layout,tone,logo:logos[tone],symbol:symbols[tone]});
       const withLogo=ctx.getImageData(logoRect.x,logoRect.y,Math.ceil(logoRect.width),Math.ceil(logoRect.height)).data.slice();
       drawBanner(canvas,{size,texts,layout,tone});
       assert.notDeepEqual(ctx.getImageData(logoRect.x,logoRect.y,Math.ceil(logoRect.width),Math.ceil(logoRect.height)).data,withLogo,'Supplied logo must appear in the exported canvas');
     }
-    drawBanner(canvas,{size,texts,layout,logo:logos.light});
+    drawBanner(canvas,{size,texts,layout,logo:logos.light,symbol:symbols.light});
     const png=await canvas.encode('png');
     assert.equal(png.readUInt32BE(16),size.width);assert.equal(png.readUInt32BE(20),size.height);
     assert.deepEqual(pixel(canvas,1,1),[20,20,20,255],'Guides and canvas border must stay out of PNGs');
   }
-  assert.equal(signatures.size,4,'Each format must have four different compositions');
+  assert.equal(signatures.size,6,'Each format must have six approved compositions');
   for(const side of ['left','top','right','bottom']) {
     const canvas=createCanvas(size.width,size.height);
     drawBanner(canvas,{size,texts:{},background:white,fade:{enabled:false,side}});
@@ -74,8 +93,8 @@ for(const size of Object.values(BANNER_SIZES)) {
 // Fade belongs behind the supplied logo, never on the foreground artwork.
 for(const size of Object.values(BANNER_SIZES)) {
   const canvas=createCanvas(size.width,size.height);
-  drawBanner(canvas,{size,texts:{},logo:logos.light,fade:{enabled:true,side:'left'}});
-  const box=containRect(958,284,bannerBlocks(size)[2].rect);
+  drawBanner(canvas,{size,texts:{},logo:logos.light,symbol:symbols.light,fade:{enabled:true,side:'left'}});
+  const box=containRect(864,244,bannerBlocks(size)[2].rect);
   const pixels=canvas.getContext('2d').getImageData(box.x,box.y,Math.ceil(box.width),Math.ceil(box.height)).data;
   let whitePixels=0;for(let i=0;i<pixels.length;i+=4)if(pixels[i]===255&&pixels[i+1]===255&&pixels[i+2]===255)whitePixels++;
   assert(whitePixels>100,'Fade must not darken the logo');
@@ -90,7 +109,8 @@ try {
   const requested=[];globalThis.document.fonts.load=font=>{requested.push(font);return Promise.resolve([{}]);};
   const pending=loadBrandAssets();assert.equal(loadBrandAssets(),pending,'Asset loads should be cached');
   const assets=await pending;
-  assert.equal(assets.light.src,'/brand/idem-white.png');assert.equal(assets.dark.src,'/brand/idem-ink.png');
+  assert.equal(assets.light.src,'/brand/idem-lockup-white.png');assert.equal(assets.dark.src,'/brand/idem-lockup-ink.png');
+  assert.equal(assets.symbolLight.src,'/brand/idem-symbol-white.png');assert.equal(assets.symbolDark.src,'/brand/idem-symbol-ink.png');
   assert(requested.some(font=>font.includes('Literatura Past')));assert(requested.some(font=>font.includes('ABC Areal')));
 } finally {globalThis.Image=originalImage;globalThis.document=originalDocument;}
 assert.throws(()=>gridRect(square,7,0,2,1),RangeError);
@@ -111,9 +131,10 @@ const pendingController=new AbortController();
 const pending=paintBackground({colors:['#000000','#ffffff'],signal:pendingController.signal});
 pendingController.abort();await assert.rejects(pending,{name:'AbortError'});assert(terminated);
 globalThis.Worker=previous;
-console.log('Passed: eight distinct grid-bound layouts, real brand fonts, both logo assets, text fitting, PNG dimensions, all four fade directions and off state, clean export, and render cancellation.');
+console.log('Passed: twelve distinct layouts matching six Figma compositions, real brand fonts, both logo assets, text fitting, PNG dimensions, all four fade directions and off state, clean export, and render cancellation.');
 
 if(process.argv.includes('--samples')) {
+  const sampleDirectory=fileURLToPath(new URL('../.context',import.meta.url));
   const painter=await readFile(new URL('../public/painter.js',import.meta.url),'utf8');
   const background=createCanvas(1920,1200);
   const self={postMessage(data){if(data.error)throw new Error(data.error);if(data.pixels)background.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(data.pixels),data.width,data.height),0,0);}};
@@ -121,14 +142,14 @@ if(process.argv.includes('--samples')) {
   self.onmessage({data:{colors:['#DFD2AE','#856333','#1C2020','#4A292C','#82908A'],seed:42,width:1920,height:1200}});
   for(const [key,size] of Object.entries(BANNER_SIZES)) {
     const tileWidth=key==='square'?512:640,tileHeight=tileWidth*size.height/size.width;
-    const sheet=createCanvas(tileWidth*2,tileHeight*2),sheetContext=sheet.getContext('2d');
+    const sheet=createCanvas(tileWidth*2,tileHeight*3),sheetContext=sheet.getContext('2d');
     for(const [index,{id:layout}] of BANNER_LAYOUTS.entries()) {
       const canvas=createCanvas(size.width,size.height);
-      drawBanner(canvas,{size,texts,layout,background,logo:logos.light,fade:{enabled:true,side:layout==='editorial'?'top':'left'}});
+      drawBanner(canvas,{size,texts,layout,background,logo:logos.light,symbol:symbols.light,fade:{enabled:true,side:layout==='editorial'?'top':'left'}});
       sheetContext.drawImage(canvas,index%2*tileWidth,Math.floor(index/2)*tileHeight,tileWidth,tileHeight);
-      if(index===0)await writeFile(`/tmp/idem-banner-${key}.png`,await canvas.encode('png'));
+      if(index===0)await writeFile(`${sampleDirectory}/idem-banner-${key}.png`,await canvas.encode('png'));
     }
-    await writeFile(`/tmp/idem-banner-${key}-layouts.png`,await sheet.encode('png'));
+    await writeFile(`${sampleDirectory}/idem-banner-${key}-layouts.png`,await sheet.encode('png'));
   }
-  console.log('Sample branded exports and layout sheets saved to /tmp/idem-banner-*.png');
+  console.log('Sample branded exports and layout sheets saved to .context/idem-banner-*.png');
 }

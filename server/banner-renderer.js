@@ -8,8 +8,8 @@ export class RenderBusyError extends Error {
   constructor(){super('Another banner is being painted. Retry in a few seconds.');this.status=429;}
 }
 
-export async function renderBanner(input) {
-  const recipe=bannerRecipeSchema.parse(input),key=JSON.stringify(recipe);
+export async function renderBanner(input,{autoLayout=false}={}) {
+  const recipe=bannerRecipeSchema.parse(input),key=JSON.stringify({recipe,autoLayout});
   const cached=cache.get(key);
   if(cached && cached.expires>Date.now())return cached.result;
   if(active) {
@@ -17,7 +17,7 @@ export async function renderBanner(input) {
     throw new RenderBusyError();
   }
   const promise=new Promise((resolve,reject)=>{
-    const worker=new Worker(new URL('./banner-worker.mjs',import.meta.url),{workerData:recipe,execArgv:[]});
+    const worker=new Worker(new URL('./banner-worker.mjs',import.meta.url),{workerData:{recipe,autoLayout},execArgv:[]});
     const timer=setTimeout(()=>finish(new Error('Banner rendering timed out. Try a solid background or retry.')),240_000);
     let settled=false;
     async function finish(error,data) {
@@ -25,7 +25,7 @@ export async function renderBanner(input) {
       settled=true;clearTimeout(timer);
       await worker.terminate();
       if(error)reject(error);
-      else resolve({png:Buffer.from(data.png),jpeg:Buffer.from(data.jpeg),width:data.width,height:data.height});
+      else resolve({png:Buffer.from(data.png),jpeg:Buffer.from(data.jpeg),width:data.width,height:data.height,recipe:data.recipe,review:data.review});
     }
     worker.once('message',data=>finish(data.error?new Error(data.error):null,data));
     worker.once('error',error=>finish(error));
@@ -35,8 +35,11 @@ export async function renderBanner(input) {
   try {
     const result=await promise;
     // Only an optimization: another instance can always reproduce the recipe.
-    if(cache.size>=3)cache.delete(cache.keys().next().value);
-    cache.set(key,{result,expires:Date.now()+5*60_000});
+    const keys=new Set([key,JSON.stringify({recipe:result.recipe,autoLayout:false})]);
+    for(const cacheKey of keys) {
+      if(!cache.has(cacheKey)&&cache.size>=3)cache.delete(cache.keys().next().value);
+      cache.set(cacheKey,{result,expires:Date.now()+5*60_000});
+    }
     return result;
   } finally {active=undefined;}
 }
