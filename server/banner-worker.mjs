@@ -4,13 +4,19 @@ import {fileURLToPath} from 'node:url';
 import {createCanvas,ImageData,GlobalFonts,loadImage} from '@napi-rs/canvas';
 import {BANNER_SIZES,drawBanner} from '../src/lib/banner-layout.js';
 import {presets} from '../src/lib/palettes.js';
+import {reviewBanner} from '../src/lib/banner-review.js';
 
 try {
-  const recipe=workerData;
+  let {recipe}=workerData;
+  const {autoLayout}=workerData;
   for(const [file,family] of [['literatura-past.otf','Literatura Past'],['abc-areal-medium.ttf','ABC Areal']]) {
     if(!GlobalFonts.registerFromPath(fileURLToPath(new URL(`../public/fonts/${file}`,import.meta.url)),family)) throw new Error(`Unable to load ${family}`);
   }
-  const logo=await loadImage(fileURLToPath(new URL(`../public/brand/idem-${recipe.tone==='light'?'white':'ink'}.png`,import.meta.url)));
+  const ink=recipe.tone==='light'?'white':'ink';
+  const legacy=recipe.version===1;
+  const logo=await loadImage(fileURLToPath(new URL(`../public/brand/idem-${legacy?'':'lockup-'}${ink}.png`,import.meta.url)));
+  const symbol=!legacy
+    ?await loadImage(fileURLToPath(new URL(`../public/brand/idem-symbol-${ink}.png`,import.meta.url))):undefined;
   let background;
   if(recipe.background==='painted') {
     // Run the exact trusted worker source used by the website, with a Node adapter.
@@ -28,11 +34,23 @@ try {
   }
   const size=BANNER_SIZES[recipe.format];
   const canvas=createCanvas(size.width,size.height);
-  drawBanner(canvas,{size,texts:{title:recipe.title,descriptor:recipe.descriptor},layout:recipe.layout,tone:recipe.tone,logo,background,fade:{enabled:recipe.fade!=='none',side:recipe.fade==='none'?'left':recipe.fade}});
+  const texts={title:recipe.title,descriptor:recipe.descriptor},fade={enabled:recipe.fade!=='none',side:recipe.fade==='none'?'left':recipe.fade};
+  let review;
+  if(!legacy) {
+    // Review the actual cropped and faded background before drawing foreground.
+    drawBanner(canvas,{size,texts:{},layout:recipe.layout,tone:recipe.tone,background,fade});
+    const context=canvas.getContext('2d');
+    review=reviewBanner(context,{size,texts,layout:recipe.layout,tone:recipe.tone,checkContrast:true});
+    if(autoLayout) {
+      recipe={...recipe,layout:review.candidates[0].layout};
+      if(recipe.layout!==review.selectedLayout)review=reviewBanner(context,{size,texts,layout:recipe.layout,tone:recipe.tone,checkContrast:true});
+    }
+  }
+  drawBanner(canvas,{size,texts:{title:recipe.title,descriptor:recipe.descriptor},layout:recipe.layout,tone:recipe.tone,logo,symbol,version:recipe.version,background,fade:{enabled:recipe.fade!=='none',side:recipe.fade==='none'?'left':recipe.fade}});
   const preview=createCanvas(768,Math.round(768*size.height/size.width));
   preview.getContext('2d').drawImage(canvas,0,0,preview.width,preview.height);
   const [png,jpeg]=await Promise.all([canvas.encode('png'),preview.encode('jpeg',85)]);
-  parentPort.postMessage({png,jpeg,width:size.width,height:size.height});
+  parentPort.postMessage({png,jpeg,width:size.width,height:size.height,recipe,review});
 } catch(error) {
   parentPort.postMessage({error:error.message});
 }

@@ -21,7 +21,7 @@ function Segments({label,value,onChange,options,disabled=false}) {
 
 function LayoutIcon({size,layout}) {
   const blocks=bannerBlocks(size,layout);
-  return <svg viewBox={`0 0 ${size.width} ${size.height}`} className="h-6 w-11" aria-hidden="true">
+  return <svg viewBox={`0 0 ${size.width} ${size.height}`} className="h-6 w-full max-w-11" aria-hidden="true">
     <rect x="8" y="8" width={size.width-16} height={size.height-16} fill="none" stroke="currentColor" strokeOpacity=".45" strokeWidth="20"/>
     {blocks.map(block=><rect key={block.key} {...block.rect} fill="currentColor" opacity={block.key==='title'?.85:block.key==='descriptor'?.4:1}/>)}
   </svg>;
@@ -40,7 +40,7 @@ function BannerPalette({colors,setColors}) {
 export function BannerWorkspace() {
   const [sizeKey,setSizeKey]=useState('square');
   const size=BANNER_SIZES[sizeKey],grid=gridFor(size);
-  const [layout,setLayout]=useState('split');
+  const [layout,setLayout]=useState('logo-top');
   const [showGrid,setShowGrid]=useState(true);
   const [layers,setLayers]=useState({columns2:true,rows2:true,columns8:true,rows8:true});
   const [texts,setTexts]=useState({title:'Your next\nbig thing.',descriptor:'A little color.\nA lot of possibility.'});
@@ -64,7 +64,7 @@ export function BannerWorkspace() {
     return ()=>{disposed=true;};
   },[]);
   useEffect(()=>{
-    if(assets)drawBanner(canvas.current,{size,texts,layout,tone,logo:assets[tone],background:background?.canvas,fade});
+    if(assets)drawBanner(canvas.current,{size,texts,layout,tone,logo:assets[tone],symbol:assets[tone==='light'?'symbolLight':'symbolDark'],background:background?.canvas,fade});
   },[size,texts,layout,tone,assets,background,fade]);
   useEffect(()=>{
     const preventFileNavigation=event=>{if(Array.from(event.dataTransfer?.types||[]).includes('Files'))event.preventDefault();};
@@ -102,7 +102,7 @@ export function BannerWorkspace() {
   function clearBackground() {cancelPainting();setBackground(null);setStatus('Background removed.');}
   function exportBanner() {
     if(busy||exporting||!assets)return;
-    drawBanner(canvas.current,{size,texts,layout,tone,logo:assets[tone],background:background?.canvas,fade});
+    drawBanner(canvas.current,{size,texts,layout,tone,logo:assets[tone],symbol:assets[tone==='light'?'symbolLight':'symbolDark'],background:background?.canvas,fade});
     setExporting(true);
     const exportSize={...size};
     canvas.current.toBlob(blob=>{

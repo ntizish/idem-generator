@@ -7,8 +7,8 @@
     "build": "vite build",
     "dev": "vite",
     "start": "node server.mjs",
-    "check": "node --check public/painter.js && node --check src/engines/still.js && node --check src/engines/upload.js && node --check server.mjs && node --check vite.config.js && node --check src/lib/banner-layout.js && node --check src/lib/paint-background.js && node --check src/lib/brand-assets.js",
-    "test": "node scripts/check-render.mjs && node scripts/check-upload.mjs && node scripts/check-banner.mjs && node scripts/check-interface.mjs && node scripts/check-mcp.mjs",
+    "check": "node --check public/painter.js && node --check src/engines/still.js && node --check src/engines/upload.js && node --check server.mjs && node --check vite.config.js && node --check src/lib/banner-layout.js && node --check src/lib/paint-background.js && node --check src/lib/brand-assets.js && node --check src/lib/banner-review.js && node --check server/banner-review.js && node --check server/banner-worker.mjs",
+    "test": "node scripts/check-render.mjs && node scripts/check-upload.mjs && node scripts/check-banner.mjs && node scripts/check-banner-review.mjs && node scripts/check-interface.mjs && node scripts/check-mcp.mjs",
     "test:mcp": "node scripts/check-mcp.mjs",
     "benchmark:banner": "node scripts/benchmark-banner.mjs"
   },
