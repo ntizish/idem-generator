@@ -18,6 +18,11 @@ export function imagePigments(image) {
   return context.getImageData(0,0,canvas.width,canvas.height);
 }
 
+export function loadBackgroundPlaceholder() {
+  const image=new Image();image.src='/banner-placeholder.jpg';
+  return image.decode().then(()=>({canvas:image,placeholder:true})).catch(()=>{throw new Error('The example background could not be loaded.');});
+}
+
 export function paintBackground({colors,image,signal,onProgress}) {
   return new Promise((resolve,reject)=>{
     if(signal.aborted) {reject(new DOMException('Cancelled','AbortError'));return;}

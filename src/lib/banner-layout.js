@@ -130,16 +130,19 @@ export function fitText(context,text,block) {
 }
 
 // The export surface contains only the artwork. Preview guides live in SVG.
-export function drawBanner(canvas,{size,texts,background,layout='logo-top',tone='light',logo,symbol,version=2,fade={enabled:false,side:'left'}}) {
+export function drawBanner(canvas,{size,texts,background,transparent=false,layout='logo-top',tone='light',logo,symbol,version=2,fade={enabled:false,side:'left'}}) {
   if(canvas.width!==size.width)canvas.width=size.width;
   if(canvas.height!==size.height)canvas.height=size.height;
   const context=canvas.getContext('2d');
-  context.fillStyle=tone==='light'?'#141414':'#f4f0e5';context.fillRect(0,0,size.width,size.height);
+  context.clearRect(0,0,size.width,size.height);
+  if(!transparent) {
+    context.fillStyle=tone==='light'?'#141414':'#f4f0e5';context.fillRect(0,0,size.width,size.height);
+  }
   if(background) {
     const rect=coverRect(background.width,background.height,size.width,size.height);
     context.drawImage(background,rect.x,rect.y,rect.width,rect.height);
   }
-  if(fade.enabled) {
+  if(fade.enabled&&!transparent) {
     const gradient=context.createLinearGradient(...fadeVector(size,fade.side));
     gradient.addColorStop(0,'rgba(0,0,0,1)');gradient.addColorStop(1,'rgba(0,0,0,0)');
     context.fillStyle=gradient;context.fillRect(0,0,size.width,size.height);

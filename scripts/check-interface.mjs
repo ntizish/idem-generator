@@ -20,6 +20,7 @@ try {
       assert.equal((overlay?.match(/<rect /g)||[]).length,20,'Preview must include the 2- and 8-track row/column overlays');
       for(const id of ['show-grid','banner-title','banner-descriptor','banner-fade'])assert(html.includes(`id="${id}"`));
       for(const label of ['Banner size','Banner layout','Background source','Fade direction','Fade from left','Fade from top','Fade from right','Fade from bottom'])assert(html.includes(`aria-label="${label}"`));
+      assert(html.includes('aria-label="Use a transparent background"'));
       for(const label of ['Logo top','Offset','Stack','Split','Editorial','Footer'])assert(html.includes(`aria-label="${label} layout"`));
       assert(!html.includes('role="combobox"'),'Banner controls must use compact segments, not dropdowns');
       assert(!html.includes('banner-eyebrow')&&!html.includes('banner-brand'));

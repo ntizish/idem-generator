@@ -1,5 +1,5 @@
 import React, {useEffect,useRef,useState} from 'react';
-import {ArrowLeft,ArrowUp,ArrowRight,ArrowDown,Sun,Moon,Plus,Minus,WandSparkles,Image as ImageIcon,X} from 'lucide-react';
+import {ArrowLeft,ArrowUp,ArrowRight,ArrowDown,Sun,Moon,Plus,Minus,WandSparkles,Image as ImageIcon,Grid2X2,X} from 'lucide-react';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
@@ -11,7 +11,7 @@ import {GridOverlay} from '@/components/banner-grid';
 import {presets} from '@/lib/palettes';
 import {BANNER_SIZES,BANNER_LAYOUTS,bannerBlocks,gridFor,drawBanner} from '@/lib/banner-layout';
 import {loadBrandAssets} from '@/lib/brand-assets';
-import {readImageFile,paintBackground} from '@/lib/paint-background';
+import {readImageFile,loadBackgroundPlaceholder,paintBackground} from '@/lib/paint-background';
 
 function Segments({label,value,onChange,options,disabled=false}) {
   return <ToggleGroup type="single" aria-label={label} value={value} onValueChange={next=>{if(next)onChange(next);}} disabled={disabled} size="sm" spacing={1} className="w-full rounded-lg bg-muted/50 p-1">
@@ -64,8 +64,13 @@ export function BannerWorkspace() {
     return ()=>{disposed=true;};
   },[]);
   useEffect(()=>{
-    if(assets)drawBanner(canvas.current,{size,texts,layout,tone,logo:assets[tone],symbol:assets[tone==='light'?'symbolLight':'symbolDark'],background:background?.canvas,fade});
-  },[size,texts,layout,tone,assets,background,fade]);
+    let disposed=false;
+    loadBackgroundPlaceholder().then(result=>{if(!disposed)setBackground(result);}).catch(error=>{if(!disposed)setStatus(error.message);});
+    return ()=>{disposed=true;};
+  },[]);
+  useEffect(()=>{
+    if(assets)drawBanner(canvas.current,{size,texts,layout,tone,logo:assets[tone],symbol:assets[tone==='light'?'symbolLight':'symbolDark'],background:source==='transparent'?undefined:background?.canvas,transparent:source==='transparent',fade});
+  },[size,texts,layout,tone,assets,background,source,fade]);
   useEffect(()=>{
     const preventFileNavigation=event=>{if(Array.from(event.dataTransfer?.types||[]).includes('Files'))event.preventDefault();};
     window.addEventListener('dragover',preventFileNavigation);window.addEventListener('drop',preventFileNavigation);
@@ -102,7 +107,7 @@ export function BannerWorkspace() {
   function clearBackground() {cancelPainting();setBackground(null);setStatus('Background removed.');}
   function exportBanner() {
     if(busy||exporting||!assets)return;
-    drawBanner(canvas.current,{size,texts,layout,tone,logo:assets[tone],symbol:assets[tone==='light'?'symbolLight':'symbolDark'],background:background?.canvas,fade});
+    drawBanner(canvas.current,{size,texts,layout,tone,logo:assets[tone],symbol:assets[tone==='light'?'symbolLight':'symbolDark'],background:source==='transparent'?undefined:background?.canvas,transparent:source==='transparent',fade});
     setExporting(true);
     const exportSize={...size};
     canvas.current.toBlob(blob=>{
@@ -119,7 +124,7 @@ export function BannerWorkspace() {
   const fadeOptions=[['left',ArrowLeft],['top',ArrowUp],['right',ArrowRight],['bottom',ArrowDown]].map(([side,Icon])=>({value:side,label:`Fade from ${side}`,content:<Icon className="size-3.5"/>}));
   return <main className="studio-main">
     <section className="workspace" aria-label="Banner workspace">
-      <div className="canvas-stage"><div className="art-frame banner-frame" style={{'--banner-ratio':size.width/size.height}}>
+      <div className="canvas-stage"><div className={`art-frame banner-frame${source==='transparent'?' is-transparent':''}`} style={{'--banner-ratio':size.width/size.height}}>
         <canvas id="banner-canvas" ref={canvas} width={size.width} height={size.height} aria-label={`${size.width} by ${size.height} banner preview`} aria-busy={busy||!assets}/>
         {!assets&&<div className="banner-loading">Loading brand assets…</div>}
         {showGrid&&<GridOverlay size={size} layers={layers}/>}
@@ -150,16 +155,16 @@ export function BannerWorkspace() {
       </section>
       <Separator/>
       <section className="space-y-3" aria-label="Background controls">
-        <div className="flex items-center justify-between"><h2>Background</h2>{background&&<Button variant="ghost" size="icon-xs" aria-label="Remove background" title="Remove background" onClick={clearBackground}><X/></Button>}</div>
-        <Segments label="Background source" value={source} onChange={changeSource} options={[{value:'generate',label:'Generate background from colors',content:<><WandSparkles className="size-3"/>Generate</>},{value:'upload',label:'Upload and paint background',content:<><ImageIcon className="size-3"/>Upload</>}]}/>
-        {source==='generate'?<BannerPalette colors={colors} setColors={setColors}/>:<div className="space-y-1.5">
+        <div className="flex items-center justify-between"><h2>Background</h2>{background&&source!=='transparent'&&<Button variant="ghost" size="icon-xs" aria-label="Remove background" title="Remove background" onClick={clearBackground}><X/></Button>}</div>
+        <Segments label="Background source" value={source} onChange={changeSource} options={[{value:'generate',label:'Generate background from colors',content:<><WandSparkles className="size-3"/>Generate</>},{value:'upload',label:'Upload and paint background',content:<><ImageIcon className="size-3"/>Upload</>},{value:'transparent',label:'Use a transparent background',content:<><Grid2X2 className="size-3"/>Transparent</>}]}/>
+        {source==='generate'?<BannerPalette colors={colors} setColors={setColors}/>:source==='upload'?<div className="space-y-1.5">
           <Label className="upload-drop py-4!" htmlFor="banner-file"><span>Choose or drop an image</span><Input id="banner-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Upload banner background" onChange={event=>{loadFile(event.target.files[0]);event.target.value='';}} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();loadFile(event.dataTransfer.files[0]);}}/></Label>
           <p className="truncate text-[9px] text-muted-foreground" title={fileName}>{fileName||'JPG, PNG, WebP · up to 20 MB'}</p>
-        </div>}
-        <Button size="sm" className="w-full text-xs" disabled={busy||fileLoading||(source==='upload'&&!hasImage)} onClick={generate}>{fileLoading?'Opening image…':busy?'Painting background…':source==='upload'?'Paint background':'Generate background'}</Button>
+        </div>:<p className="text-[10px] leading-relaxed text-muted-foreground">Export the banner as a PNG with no background. Text and logos remain visible.</p>}
+        {source!=='transparent'&&<Button size="sm" className="w-full text-xs" disabled={busy||fileLoading||(source==='upload'&&!hasImage)} onClick={generate}>{fileLoading?'Opening image…':busy?'Painting background…':source==='upload'?'Paint background':'Generate background'}</Button>}
         {busy&&<Button variant="outline" size="sm" className="w-full text-xs" onClick={()=>{cancelPainting();setStatus('Painting cancelled.');}}>Cancel</Button>}
-        <div className="flex items-center justify-between"><Label htmlFor="banner-fade" className="text-[11px] font-semibold">Fade</Label><Switch id="banner-fade" size="sm" checked={fade.enabled} onCheckedChange={enabled=>setFade(current=>({...current,enabled}))}/></div>
-        <Segments label="Fade direction" value={fade.side} onChange={side=>setFade(current=>({...current,side}))} options={fadeOptions} disabled={!fade.enabled}/>
+        {source!=='transparent'&&<><div className="flex items-center justify-between"><Label htmlFor="banner-fade" className="text-[11px] font-semibold">Fade</Label><Switch id="banner-fade" size="sm" checked={fade.enabled} onCheckedChange={enabled=>setFade(current=>({...current,enabled}))}/></div>
+        <Segments label="Fade direction" value={fade.side} onChange={side=>setFade(current=>({...current,side}))} options={fadeOptions} disabled={!fade.enabled}/></>}
       </section>
     </aside>
   </main>;

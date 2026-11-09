@@ -18,6 +18,10 @@ assert.deepEqual([landscape.margin,landscape.gap,landscape.halfColumn,landscape.
 const texts={title:'Your next\nbig thing.',descriptor:'A little color.\nA lot of possibility.'};
 const white=createCanvas(64,64);white.getContext('2d').fillStyle='white';white.getContext('2d').fillRect(0,0,64,64);
 function pixel(canvas,x,y){return Array.from(canvas.getContext('2d').getImageData(x,y,1,1).data);}
+const placeholderImage=await loadImage(fileURLToPath(new URL('../public/banner-placeholder.jpg',import.meta.url)));
+assert.deepEqual([placeholderImage.width,placeholderImage.height],[1920,1200],'The static placeholder must match the generated painting aspect ratio');
+const placeholder=createCanvas(1920,1200);placeholder.getContext('2d').drawImage(placeholderImage,0,0);
+assert.notDeepEqual(pixel(placeholder,80,80),pixel(placeholder,960,600),'The static placeholder must contain visible painted variation');
 
 // Literal measurements from the six approved Figma frames, in canvas pixels.
 const figmaFrames={
@@ -89,6 +93,15 @@ for(const size of Object.values(BANNER_SIZES)) {
     assert(end[0]>252,`${side}: opposite edge must be transparent`);
     assert.equal(start[3],255);assert.equal(end[3],255);
   }
+}
+// Transparent banners must keep the background alpha while retaining foreground artwork.
+{
+  const size=BANNER_SIZES.square,canvas=createCanvas(size.width,size.height);
+  drawBanner(canvas,{size,texts:{},transparent:true,logo:logos.light,symbol:symbols.light,fade:{enabled:true,side:'left'}});
+  assert.deepEqual(pixel(canvas,1,1),[0,0,0,0],'Transparent exports must preserve an empty alpha channel');
+  const box=containRect(864,244,bannerBlocks(size)[2].rect);
+  const artwork=canvas.getContext('2d').getImageData(box.x,box.y,Math.ceil(box.width),Math.ceil(box.height)).data;
+  assert(artwork.some((value,index)=>index%4===3&&value>0),'Foreground artwork must remain in transparent exports');
 }
 // Fade belongs behind the supplied logo, never on the foreground artwork.
 for(const size of Object.values(BANNER_SIZES)) {
