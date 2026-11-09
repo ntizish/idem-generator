@@ -138,11 +138,16 @@ await assert.rejects(readImageFile({type:'text/plain',size:10}),/JPG/);
 await assert.rejects(readImageFile({type:'image/png',size:21*1024*1024}),/20 MB/);
 const controller=new AbortController();controller.abort();
 await assert.rejects(paintBackground({signal:controller.signal}),{name:'AbortError'});
-const previous=globalThis.Worker;let terminated=false;
-globalThis.Worker=class {postMessage(){}terminate(){terminated=true;}};
+const previous=globalThis.Worker;let terminated=false,posted;
+globalThis.Worker=class {postMessage(message){posted=message;}terminate(){terminated=true;}};
 const pendingController=new AbortController();
 const pending=paintBackground({colors:['#000000','#ffffff'],signal:pendingController.signal});
+assert.deepEqual([posted.width,posted.height],[1920,1200],'Fast generation must be the default');
 pendingController.abort();await assert.rejects(pending,{name:'AbortError'});assert(terminated);
+const hifiController=new AbortController();
+const hifi=paintBackground({colors:['#000000','#ffffff'],width:3840,height:2400,signal:hifiController.signal});
+assert.deepEqual([posted.width,posted.height],[3840,2400],'Hi-fi generation must retain the original resolution');
+hifiController.abort();await assert.rejects(hifi,{name:'AbortError'});
 globalThis.Worker=previous;
 console.log('Passed: twelve distinct layouts matching six Figma compositions, real brand fonts, both logo assets, text fitting, PNG dimensions, all four fade directions and off state, clean export, and render cancellation.');
 

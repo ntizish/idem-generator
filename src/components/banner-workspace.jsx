@@ -37,6 +37,11 @@ function BannerPalette({colors,setColors}) {
   </div>;
 }
 
+const GENERATION_RESOLUTIONS={
+  fast:{width:1920,height:1200,label:'Fast'},
+  hifi:{width:3840,height:2400,label:'Hi-fi'},
+};
+
 export function BannerWorkspace() {
   const [sizeKey,setSizeKey]=useState('square');
   const size=BANNER_SIZES[sizeKey],grid=gridFor(size);
@@ -48,6 +53,7 @@ export function BannerWorkspace() {
   const [fade,setFade]=useState({enabled:false,side:'left'});
   const [assets,setAssets]=useState(null);
   const [source,setSource]=useState('generate');
+  const [resolutionKey,setResolutionKey]=useState('fast');
   const [colors,setColors]=useState([...presets[0].colors]);
   const [background,setBackground]=useState(null);
   const [fileName,setFileName]=useState('');
@@ -98,9 +104,10 @@ export function BannerWorkspace() {
     cancelPainting();
     const controller=new AbortController();job.current=controller;setBusy(true);setStatus('Mixing your pigments…');
     try {
-      const result=await paintBackground({colors,image:source==='upload'?image.current:null,signal:controller.signal,onProgress:message=>{if(!controller.signal.aborted)setStatus(message);}});
+      const resolution=GENERATION_RESOLUTIONS[resolutionKey];
+      const result=await paintBackground({colors,image:source==='upload'?image.current:null,width:resolution.width,height:resolution.height,signal:controller.signal,onProgress:message=>{if(!controller.signal.aborted)setStatus(message);}});
       if(controller.signal.aborted)return;
-      setBackground(result);setStatus('Background ready. Text and guides remain editable.');
+      setBackground(result);setStatus(`Background ready${source==='generate'?` at ${resolution.width} × ${resolution.height}`:''}. Text and guides remain editable.`);
     } catch(error) {if(error.name!=='AbortError'&&!controller.signal.aborted)setStatus(error.message);}
     finally {if(job.current===controller){job.current=null;setBusy(false);}}
   }
@@ -157,7 +164,7 @@ export function BannerWorkspace() {
       <section className="space-y-3" aria-label="Background controls">
         <div className="flex items-center justify-between"><h2>Background</h2>{background&&source!=='transparent'&&<Button variant="ghost" size="icon-xs" aria-label="Remove background" title="Remove background" onClick={clearBackground}><X/></Button>}</div>
         <Segments label="Background source" value={source} onChange={changeSource} options={[{value:'generate',label:'Generate background from colors',content:<><WandSparkles className="size-3"/>Generate</>},{value:'upload',label:'Upload and paint background',content:<><ImageIcon className="size-3"/>Upload</>},{value:'transparent',label:'Use a transparent background',content:<><Grid2X2 className="size-3"/>Transparent</>}]}/>
-        {source==='generate'?<BannerPalette colors={colors} setColors={setColors}/>:source==='upload'?<div className="space-y-1.5">
+        {source==='generate'?<div className="space-y-3"><BannerPalette colors={colors} setColors={setColors}/><div className="space-y-1.5"><div className="flex items-center justify-between"><Label className="text-[10px] font-semibold">Generation resolution</Label><span className="text-[9px] text-muted-foreground">{GENERATION_RESOLUTIONS[resolutionKey].width} × {GENERATION_RESOLUTIONS[resolutionKey].height}</span></div><Segments label="Generation resolution" value={resolutionKey} onChange={setResolutionKey} disabled={busy} options={Object.entries(GENERATION_RESOLUTIONS).map(([value,item])=>({value,label:`${item.label} background generation at ${item.width} by ${item.height}`,content:item.label}))}/></div></div>:source==='upload'?<div className="space-y-1.5">
           <Label className="upload-drop py-4!" htmlFor="banner-file"><span>Choose or drop an image</span><Input id="banner-file" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Upload banner background" onChange={event=>{loadFile(event.target.files[0]);event.target.value='';}} onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();loadFile(event.dataTransfer.files[0]);}}/></Label>
           <p className="truncate text-[9px] text-muted-foreground" title={fileName}>{fileName||'JPG, PNG, WebP · up to 20 MB'}</p>
         </div>:<p className="text-[10px] leading-relaxed text-muted-foreground">Export the banner as a PNG with no background. Text and logos remain visible.</p>}

@@ -23,7 +23,7 @@ export function loadBackgroundPlaceholder() {
   return image.decode().then(()=>({canvas:image,placeholder:true})).catch(()=>{throw new Error('The example background could not be loaded.');});
 }
 
-export function paintBackground({colors,image,signal,onProgress}) {
+export function paintBackground({colors,image,signal,onProgress,width=1920,height=1200}) {
   return new Promise((resolve,reject)=>{
     if(signal.aborted) {reject(new DOMException('Cancelled','AbortError'));return;}
     let worker;
@@ -46,7 +46,7 @@ export function paintBackground({colors,image,signal,onProgress}) {
       if(image) {
         const source=imagePigments(image);
         worker.postMessage({seed,width:source.width,height:source.height,sourcePixels:source.data.buffer},[source.data.buffer]);
-      } else worker.postMessage({seed,colors:[...colors],width:3840,height:2400});
+      } else worker.postMessage({seed,colors:[...colors],width,height});
     } catch(error) {dispose();reject(error);}
   });
 }
